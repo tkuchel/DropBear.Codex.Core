@@ -45,6 +45,7 @@ public class Result<T> where T : notnull
     /// <summary>
     ///     Gets the value associated with a successful result. Throws InvalidOperationException if the result is a failure.
     /// </summary>
+    [Key(2)]
     public T Value => _value ?? throw new InvalidOperationException("Cannot access Value on a failed result.");
 
     /// <summary>
