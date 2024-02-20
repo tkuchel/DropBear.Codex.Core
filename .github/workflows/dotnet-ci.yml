@@ -1,0 +1,65 @@
+name: .NET CI and NuGet Management
+
+on:
+  push:
+    branches: [ master ]
+    # Trigger for tag creations, assuming semantic versioning
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-and-manage-nuget:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # Fetches all history for all branches and tags, necessary for Nerdbank.GitVersioning
+      
+      # Setup .NET 8 SDK
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '8.0.x' # Ensure this matches your project's SDK version
+      
+      # Restore dependencies
+      - name: Restore dependencies
+        run: dotnet restore
+      
+      # Build
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+      
+      # Optionally run tests
+      - name: Test
+        run: dotnet test --no-build --verbosity normal --configuration Release
+      
+      # Pack NuGet packages using Nerdbank.GitVersioning for versioning
+      - name: Pack
+        run: dotnet pack --no-build --output ./nuget-packages --configuration Release
+      
+      # Archive NuGet packages
+      - name: Archive NuGet packages
+        uses: actions/upload-artifact@v2
+        with:
+          name: nuget-packages
+          path: ./nuget-packages/*.nupkg
+      
+      # This step shows how to create a release and upload artifacts to it.
+      - name: Create Release and Upload Artifacts
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ./nuget-packages/*.nupkg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      # Publish NuGet packages (Conditional on tag push)
+      - name: Publish NuGet Package
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          dotnet nuget push "./nuget-packages/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
