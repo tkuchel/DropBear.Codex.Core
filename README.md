@@ -17,7 +17,7 @@ Follow these instructions to get DropBear Codex running in your project for deve
 ### Installing
 1. Add DropBear Codex to your .NET project via NuGet:
 ```shell
-dotnet add package DropBear.Codex
+dotnet add package DropBear.Codex.Core
 ```
 2. Use the library in your project by adding the appropriate `using` statements:
 ```csharp
