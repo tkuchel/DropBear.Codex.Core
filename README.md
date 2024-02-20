@@ -74,11 +74,11 @@ We welcome contributions! Please submit pull requests or open issues on our [Git
 We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [releases on our repository](https://github.com/tkuchel/DropBear.Codex.Core/releases). 
   
 ## Authors
-- **Terrence Kuchel (DropBear) ** - *Initial work* - [YourGitHub](https://github.com/tkuchel)
-See also the list of [contributors](https://github.com/YourGitHub/DropBearCodex/contributors) who participated in this project.
+- **Terrence Kuchel (DropBear)** - *Initial work* - [tkuchel GitHub](https://github.com/tkuchel)
+See also the list of [contributors](https://github.com/tkuchel/DropBear.Codex.Core/contributors) who participated in this project.
   
 ## License
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/tkuchel/DropBear.Codex.Core/LICENSE.md) file for details.
+This project is licensed under the GNU Lesser Public License v3 - see the [LICENSE](https://www.gnu.org/licenses/lgpl-3.0.html#license-text) file for details.
   
 ## Acknowledgments
 - Hat tip to anyone whose code was used
