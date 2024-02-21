@@ -9,12 +9,11 @@ namespace DropBear.Codex.Core.Extensions;
 
 public static class ResultExtensions
 {
-    
     private static readonly MessagePackSerializerOptions Options = MessagePackSerializerOptions.Standard
         .WithResolver(CustomResolver.Instance)
         .WithSecurity(MessagePackSecurity.UntrustedData);
-    
-    
+
+
     /// <summary>
     ///     Serializes the result to a byte array using MessagePack.
     /// </summary>
@@ -24,6 +23,21 @@ public static class ResultExtensions
     public static byte[] SerializeWithMessagePack<T>(this Result<T> result) where T : notnull
     {
         return MessagePackSerializer.Serialize(result, Options);
+    }
+
+    /// <summary>
+    ///     Deserializes a byte array back into a Result<T> instance using MessagePack.
+    /// </summary>
+    /// <typeparam name="T">The type of the value encapsulated by the result.</typeparam>
+    /// <param name="serializedResult">The byte array representing the serialized result.</param>
+    /// <returns>The deserialized Result<T> instance.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if the serializedResult is null or empty.</exception>
+    public static Result<T> DeserializeWithMessagePack<T>(byte[] serializedResult) where T : notnull
+    {
+        if (serializedResult == null || serializedResult.Length == 0)
+            throw new ArgumentNullException(nameof(serializedResult), "Serialized result cannot be null or empty.");
+
+        return MessagePackSerializer.Deserialize<Result<T>>(serializedResult, Options);
     }
 
     /// <summary>
@@ -94,7 +108,6 @@ public static class ResultExtensions
 
         var compressionOptions = Options.WithCompression(MessagePackCompression.Lz4BlockArray);
         return MessagePackSerializer.Deserialize<Result<T>>(compressedData, compressionOptions);
-
     }
 
     /// <summary>
