@@ -1,5 +1,6 @@
 ﻿using DropBear.Codex.Core.ExitCodes.Base;
 using DropBear.Codex.Core.Formatters;
+using DropBear.Codex.Core.Models;
 using DropBear.Codex.Core.ReturnTypes;
 using MessagePack;
 using MessagePack.Formatters;
@@ -42,6 +43,11 @@ public class CustomResolver : IFormatterResolver
             {
                 var formatterType =
                     typeof(ResultWithPayloadFormatter<>).MakeGenericType(typeof(T).GetGenericArguments()[0]);
+                Formatter = (IMessagePackFormatter<T>)Activator.CreateInstance(formatterType);
+            }
+            else if (typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition() == typeof(Payload<>))
+            {
+                var formatterType = typeof(PayloadFormatter<>).MakeGenericType(typeof(T).GetGenericArguments()[0]);
                 Formatter = (IMessagePackFormatter<T>)Activator.CreateInstance(formatterType);
             }
             else
