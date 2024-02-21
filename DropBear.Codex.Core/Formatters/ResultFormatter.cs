@@ -3,7 +3,6 @@ using DropBear.Codex.Core.ReturnTypes;
 using MessagePack;
 using MessagePack.Formatters;
 
-// Custom formatter for Result class
 namespace DropBear.Codex.Core.Formatters;
 
 public class ResultFormatter : IMessagePackFormatter<Result>
@@ -16,53 +15,41 @@ public class ResultFormatter : IMessagePackFormatter<Result>
             return;
         }
 
-        // Assuming ExitCode is already handled by its custom formatter
-        // Write map header for 2 elements (ExitCode, ErrorMessage)
+        // Assuming Result has an ExitCode and ErrorMessage for simplicity
         writer.WriteMapHeader(2);
 
-        // Serialize ExitCode
-        writer.WriteInt32(0); // Key for ExitCode
+        writer.Write(nameof(Result.ExitCode));
         options.Resolver.GetFormatterWithVerify<ExitCode>().Serialize(ref writer, value.ExitCode, options);
 
-        // Serialize ErrorMessage
-        writer.WriteInt32(1); // Key for ErrorMessage
+        writer.Write(nameof(Result.ErrorMessage));
         writer.Write(value.ErrorMessage);
     }
 
     public Result Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
     {
-        if (reader.TryReadNil())
-        {
-            return null;
-        }
+        if (reader.TryReadNil()) return null;
 
-        options.Security.DepthStep(ref reader);
-
-        // Expect a map of 2 elements
         var count = reader.ReadMapHeader();
         ExitCode exitCode = null;
-        string errorMessage = string.Empty;
+        var errorMessage = string.Empty;
 
-        for (int i = 0; i < count; i++)
+        for (var i = 0; i < count; i++)
         {
-            var key = reader.ReadInt32();
-            switch (key)
+            var propertyName = reader.ReadString();
+            switch (propertyName)
             {
-                case 0: // ExitCode
+                case nameof(Result.ExitCode):
                     exitCode = options.Resolver.GetFormatterWithVerify<ExitCode>().Deserialize(ref reader, options);
                     break;
-                case 1: // ErrorMessage
+                case nameof(Result.ErrorMessage):
                     errorMessage = reader.ReadString();
                     break;
                 default:
-                    reader.Skip(); // Skip unknown fields
-                    break;
+                    throw new InvalidOperationException($"Unknown property: {propertyName}");
             }
         }
 
-        reader.Depth--;
-
-        // Use protected constructor to instantiate Result
+        // Use a constructor or a factory method as appropriate
         return new Result(exitCode, errorMessage);
     }
 }

@@ -1,4 +1,5 @@
-﻿using DropBear.Codex.Core.ReturnTypes;
+﻿using DropBear.Codex.Core.Resolvers;
+using DropBear.Codex.Core.ReturnTypes;
 using DropBear.Codex.Core.Utilities;
 using MessagePack;
 using Microsoft.AspNetCore.Http;
@@ -8,6 +9,12 @@ namespace DropBear.Codex.Core.Extensions;
 
 public static class ResultExtensions
 {
+    
+    private static readonly MessagePackSerializerOptions Options = MessagePackSerializerOptions.Standard
+        .WithResolver(CustomResolver.Instance)
+        .WithSecurity(MessagePackSecurity.UntrustedData);
+    
+    
     /// <summary>
     ///     Serializes the result to a byte array using MessagePack.
     /// </summary>
@@ -16,8 +23,7 @@ public static class ResultExtensions
     /// <returns>A byte array representing the serialized result.</returns>
     public static byte[] SerializeWithMessagePack<T>(this Result<T> result) where T : notnull
     {
-        return MessagePackSerializer.Serialize(result,
-            MessagePackSerializerOptions.Standard.WithSecurity(MessagePackSecurity.UntrustedData));
+        return MessagePackSerializer.Serialize(result, Options);
     }
 
     /// <summary>
@@ -68,9 +74,8 @@ public static class ResultExtensions
     {
         if (result == null) throw new ArgumentNullException(nameof(result), "Result cannot be null.");
 
-        return MessagePackSerializer.Serialize(result,
-            MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray)
-                .WithSecurity(MessagePackSecurity.UntrustedData));
+        var compressionOptions = Options.WithCompression(MessagePackCompression.Lz4BlockArray);
+        return MessagePackSerializer.Serialize(result, compressionOptions);
     }
 
     /// <summary>
@@ -87,9 +92,9 @@ public static class ResultExtensions
         if (compressedData == null || compressedData.Length == 0)
             throw new ArgumentNullException(nameof(compressedData), "Compressed data cannot be null or empty.");
 
-        return MessagePackSerializer.Deserialize<Result<T>>(compressedData,
-            MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray)
-                .WithSecurity(MessagePackSecurity.UntrustedData));
+        var compressionOptions = Options.WithCompression(MessagePackCompression.Lz4BlockArray);
+        return MessagePackSerializer.Deserialize<Result<T>>(compressedData, compressionOptions);
+
     }
 
     /// <summary>
@@ -103,11 +108,7 @@ public static class ResultExtensions
     public static byte[] SerializeWithChecksum<T>(this ResultWithPayload<T> result) where T : notnull
     {
         if (result == null) throw new ArgumentNullException(nameof(result), "Result cannot be null.");
-
-        // Assuming ResultWithPayload<T> can be directly serialized with MessagePack.
-        // Adjust serialization options as necessary.
-        return MessagePackSerializer.Serialize(result,
-            MessagePackSerializerOptions.Standard.WithSecurity(MessagePackSecurity.UntrustedData));
+        return MessagePackSerializer.Serialize(result, Options);
     }
 
     /// <summary>
@@ -124,8 +125,7 @@ public static class ResultExtensions
         if (serializedData == null || serializedData.Length == 0)
             throw new ArgumentNullException(nameof(serializedData), "Serialized data cannot be null or empty.");
 
-        var result = MessagePackSerializer.Deserialize<ResultWithPayload<T>>(serializedData,
-            MessagePackSerializerOptions.Standard.WithSecurity(MessagePackSecurity.UntrustedData));
+        var result = MessagePackSerializer.Deserialize<ResultWithPayload<T>>(serializedData, Options);
 
         if (result.Payload != null && !result.Payload.ValidateChecksum())
             throw new InvalidOperationException("Data integrity check failed. The data may have been tampered with.");

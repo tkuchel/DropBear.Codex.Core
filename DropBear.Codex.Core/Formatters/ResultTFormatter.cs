@@ -15,50 +15,53 @@ public class ResultFormatter<T> : IMessagePackFormatter<Result<T>> where T : not
             return;
         }
 
-        writer.WriteMapHeader(3);
-        writer.WriteInt32(0);
-        options.Resolver.GetFormatterWithVerify<ExitCode>().Serialize(ref writer, value.ExitCode, options);
-        
-        writer.WriteInt32(1);
+        var headerSize = value.IsSuccess ? 3 : 2; // Adjust based on whether T is included
+        writer.WriteMapHeader(headerSize);
+
+        writer.Write(nameof(Result<T>.ExitCode));
+        MessagePackSerializer.Serialize(ref writer, value.ExitCode, options);
+
+        writer.Write(nameof(Result<T>.ErrorMessage));
         writer.Write(value.ErrorMessage);
 
-        writer.WriteInt32(2);
-        options.Resolver.GetFormatterWithVerify<T>().Serialize(ref writer, value.Value, options);
+        if (value.IsSuccess)
+        {
+            writer.Write("Value");
+            MessagePackSerializer.Serialize(ref writer, value.Value, options);
+        }
     }
 
     public Result<T> Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
     {
         if (reader.TryReadNil())
-        {
             return null;
-        }
-
-        options.Security.DepthStep(ref reader);
 
         var count = reader.ReadMapHeader();
         ExitCode exitCode = null;
+        var errorMessage = string.Empty;
         T value = default;
-        string errorMessage = string.Empty;
 
-        for (int i = 0; i < count; i++)
+        for (var i = 0; i < count; i++)
         {
-            var key = reader.ReadInt32();
-            switch (key)
+            var propertyName = reader.ReadString();
+            switch (propertyName)
             {
-                case 0:
-                    exitCode = options.Resolver.GetFormatterWithVerify<ExitCode>().Deserialize(ref reader, options);
+                case nameof(Result<T>.ExitCode):
+                    exitCode = MessagePackSerializer.Deserialize<ExitCode>(ref reader, options);
                     break;
-                case 1:
+                case nameof(Result<T>.ErrorMessage):
                     errorMessage = reader.ReadString();
                     break;
-                case 2:
-                    value = options.Resolver.GetFormatterWithVerify<T>().Deserialize(ref reader, options);
+                case "Value":
+                    value = MessagePackSerializer.Deserialize<T>(ref reader, options);
                     break;
+                default:
+                    throw new InvalidOperationException($"Unknown property: {propertyName}");
             }
         }
 
-        reader.Depth--;
-
-        return new Result<T>(exitCode, value, errorMessage); // Assumes the existence of a suitable constructor
+        if (value != null)
+            return Result<T>.Success(value);
+        return Result<T>.Failure(errorMessage, exitCode);
     }
 }

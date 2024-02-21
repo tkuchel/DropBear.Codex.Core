@@ -1,26 +1,29 @@
 ﻿using System.Security.Cryptography;
 using MessagePack;
 
+namespace DropBear.Codex.Core.Models;
+
 public class Payload<T> where T : notnull
 {
     // Private constructor to enforce the use of factory method
-    private Payload(byte[] data)
+    private Payload(T data)
     {
-        Data = data ?? throw new ArgumentNullException(nameof(data), "Data cannot be null.");
-        ComputeAndSetChecksum(); // Ensure checksum is computed upon creation
+        Data = data;
+        Checksum = ComputeChecksum(data);
     }
 
-    public byte[] Data { get; }
-    public byte[] Checksum { get; private set; } // Allow setting within class
-    public DateTimeOffset? Timestamp { get; private init; } = DateTimeOffset.UtcNow; // Default to current time
-    public string ContentType { get; private init; } = "application/msgpack"; // Default to MsgPack
+    public T Data { get; }
+    public byte[] Checksum { get; }
+    public DateTimeOffset? Timestamp { get; private init; } = DateTimeOffset.UtcNow;
+    public string ContentType { get; private init; } = "application/msgpack";
 
     /// <summary>
     ///     Computes and sets the checksum for the current data using SHA-256.
     /// </summary>
-    private void ComputeAndSetChecksum()
+    private byte[] ComputeChecksum(T data)
     {
-        Checksum = SHA256.HashData(Data);
+        var serializedData = MessagePackSerializer.Serialize(data);
+        return SHA256.HashData(serializedData);
     }
 
     /// <summary>
@@ -30,11 +33,7 @@ public class Payload<T> where T : notnull
     /// <returns>A new payload instance with computed checksum.</returns>
     public static Payload<T> Create(T data)
     {
-        var serializedData = MessagePackSerializer.Serialize(data,
-            MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray)
-                .WithSecurity(MessagePackSecurity.UntrustedData));
-
-        return new Payload<T>(serializedData);
+        return new Payload<T>(data);
     }
 
     /// <summary>
@@ -43,7 +42,7 @@ public class Payload<T> where T : notnull
     /// <returns>True if the checksums match, indicating the data has not been tampered with; otherwise, false.</returns>
     public bool ValidateChecksum()
     {
-        var computedChecksum = SHA256.HashData(Data);
+        var computedChecksum = ComputeChecksum(Data);
         return Checksum.SequenceEqual(computedChecksum);
     }
 }

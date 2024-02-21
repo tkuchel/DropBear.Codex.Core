@@ -1,13 +1,13 @@
 ﻿using DropBear.Codex.Core.ExitCodes.Base;
+using DropBear.Codex.Core.ExitCodes.Standard;
 using MessagePack;
 using MessagePack.Formatters;
 
-// Updated custom formatter for ExitCode compatible with MessagePack V2
 namespace DropBear.Codex.Core.Formatters;
 
-public class ExitCodeFormatter<T> : IMessagePackFormatter<T> where T : ExitCode
+public class ExitCodeFormatter : IMessagePackFormatter<ExitCode>
 {
-    public void Serialize(ref MessagePackWriter writer, T value, MessagePackSerializerOptions options)
+    public void Serialize(ref MessagePackWriter writer, ExitCode value, MessagePackSerializerOptions options)
     {
         if (value == null)
         {
@@ -15,35 +15,51 @@ public class ExitCodeFormatter<T> : IMessagePackFormatter<T> where T : ExitCode
             return;
         }
 
-        // Start an array container to hold the properties
-        writer.WriteArrayHeader(2);
-        writer.Write(value.Code); // Writes an int32 without needing to explicitly call WriteInt32
-
-        // Convert string to UTF-8 bytes and write
-        writer.Write(value.Description); // Directly write the string which internally converts to UTF-8 bytes
+        // Simplified example: Serialize type discriminator and properties directly
+        writer.WriteMapHeader(3);
+        writer.Write("Type");
+        writer.Write(value.GetType().Name);
+        writer.Write("Code");
+        writer.Write(value.Code);
+        writer.Write("Description");
+        writer.Write(value.Description);
     }
 
-    public T Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+    public ExitCode Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
     {
-        if (reader.TryReadNil())
+        if (reader.TryReadNil()) return null;
+
+        var count = reader.ReadMapHeader();
+        string typeName = null;
+        int code = 0;
+        string description = null;
+
+        for (int i = 0; i < count; i++)
         {
-            return null;
+            var propertyName = reader.ReadString();
+            switch (propertyName)
+            {
+                case "Type":
+                    typeName = reader.ReadString();
+                    break;
+                case "Code":
+                    code = reader.ReadInt32();
+                    break;
+                case "Description":
+                    description = reader.ReadString();
+                    break;
+            }
         }
 
-        options.Security.DepthStep(ref reader);
-
-        // Ensure we're reading an array of the expected length
-        var length = reader.ReadArrayHeader();
-        if (length != 2)
+        // Instantiate based on type discriminator
+        if (typeName == nameof(SuccessExitCode))
         {
-            throw new MessagePackSerializationException("Expected array length of 2.");
+            return new SuccessExitCode(); // Assuming SuccessExitCode fits this simple case
         }
-
-        var code = reader.ReadInt32();
-        var description = reader.ReadString();
-
-        reader.Depth--;
-
-        return (T)Activator.CreateInstance(typeof(T), code, description);
+        else
+        {
+            // Handle other types or throw an error if the type is unknown
+            throw new InvalidOperationException($"Unsupported type: {typeName}");
+        }
     }
 }
