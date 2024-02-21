@@ -1,5 +1,8 @@
 name: .NET CI and NuGet Management
 
+permissions:
+  contents: write
+
 on:
   push:
     branches: [ master ]
