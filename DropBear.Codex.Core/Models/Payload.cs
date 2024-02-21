@@ -12,6 +12,13 @@ public class Payload<T> where T : notnull
         Checksum = ComputeChecksum(data);
     }
 
+    // Internal constructor to allow deserialization
+    internal Payload(T data, byte[] checksum)
+    {
+        Data = data;
+        Checksum = checksum;
+    }
+
     public T Data { get; }
     public byte[] Checksum { get; }
     public DateTimeOffset? Timestamp { get; private init; } = DateTimeOffset.UtcNow;
