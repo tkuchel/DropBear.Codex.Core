@@ -14,6 +14,7 @@
         <PackageLicenseUrl>https://www.gnu.org/licenses/lgpl-3.0.html#license-text</PackageLicenseUrl>
         <RepositoryUrl>https://github.com/tkuchel/DropBear.Codex.Core</RepositoryUrl>
         <RepositoryType>Git</RepositoryType>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
 

@@ -201,7 +201,7 @@ public static class ResultExtensions
 
         var result = MessagePackSerializer.Deserialize<ResultWithPayload<T>>(serializedData, Options);
 
-        if (result.Payload != null && !result.Payload.ValidateChecksum())
+        if (result.Payload != null && !result.Payload.VerifyIntegrity())
             throw new InvalidOperationException("Data integrity check failed. The data may have been tampered with.");
 
         return result;

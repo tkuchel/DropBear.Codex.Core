@@ -6,7 +6,7 @@ namespace DropBear.Codex.Core.ReturnTypes;
 using System;
 
 /// <summary>
-/// Represents a specialized result type that incorporates a payload, including data, checksum, and optional metadata, 
+/// Represents a specialized result type that incorporates a payload, including data, checksum/signature, and optional metadata, 
 /// for operations that require data integrity verification alongside the operation result.
 /// </summary>
 /// <typeparam name="T">The type of data encapsulated as a payload.</typeparam>
@@ -51,7 +51,7 @@ public class ResultWithPayload<T> where T : notnull
     /// <returns>A successful result containing the payload.</returns>
     public static ResultWithPayload<T> Success(T data)
     {
-        var payload = Payload<T>.Create(data);
+        var payload = new Payload<T>(data);
         return new ResultWithPayload<T>(payload, true);
     }
 
@@ -71,14 +71,14 @@ public class ResultWithPayload<T> where T : notnull
     /// </summary>
     /// <returns>True if the checksums match, indicating the data has not been tampered with; otherwise, false.</returns>
     /// <exception cref="InvalidOperationException">Thrown if called on a result without a payload.</exception>
-    public bool ValidateChecksum()
+    public bool ValidateIntegrity()
     {
         if (Payload == null)
         {
-            throw new InvalidOperationException("Cannot validate checksum for a result without a payload.");
+            throw new InvalidOperationException("Cannot validate checksum / signature for a result without a payload.");
         }
 
-        return Payload.ValidateChecksum();
+        return Payload.VerifyIntegrity();
     }
     
 }
