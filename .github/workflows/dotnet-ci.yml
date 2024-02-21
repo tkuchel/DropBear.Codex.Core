@@ -14,13 +14,13 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Fetches all history for all branches and tags, necessary for Nerdbank.GitVersioning
       
       # Setup .NET 8 SDK
       - name: Setup .NET
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x' # Ensure this matches your project's SDK version
       
@@ -42,7 +42,7 @@ jobs:
       
       # Archive NuGet packages
       - name: Archive NuGet packages
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: nuget-packages
           path: ./nuget-packages/*.nupkg
