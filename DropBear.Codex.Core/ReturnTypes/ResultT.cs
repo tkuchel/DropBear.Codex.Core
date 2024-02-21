@@ -29,13 +29,13 @@ public class Result<T> where T : notnull
     /// <param name="exitCode">The exit code representing the outcome of the operation.</param>
     /// <param name="value">The value associated with a successful result.</param>
     /// <param name="errorMessage">The error message associated with a failure.</param>
-    private Result(ExitCode exitCode, T? value = default, string errorMessage = "")
+    [Obsolete("For MessagePack serialization only. Not intended for direct use in code.")]
+    public Result(ExitCode exitCode, T value, string errorMessage)
     {
-        ExitCode = exitCode ?? throw new ArgumentNullException(nameof(exitCode), "Exit code cannot be null.");
+        ExitCode = exitCode ?? throw new ArgumentNullException(nameof(exitCode));
+        _value = value;
         ErrorMessage = errorMessage ?? string.Empty;
-        _value = ExitCode == StandardExitCodes.Success ? value : default;
     }
-
     /// <summary>
     ///     Gets the exit code representing the outcome of the operation.
     /// </summary>
@@ -45,6 +45,7 @@ public class Result<T> where T : notnull
     /// <summary>
     ///     Gets the value associated with a successful result. Throws InvalidOperationException if the result is a failure.
     /// </summary>
+    [Key(2)]
     public T Value => _value ?? throw new InvalidOperationException("Cannot access Value on a failed result.");
 
     /// <summary>
@@ -72,7 +73,7 @@ public class Result<T> where T : notnull
     /// <returns>A successful result.</returns>
     public static Result<T> Success(T value)
     {
-        return new Result<T>(StandardExitCodes.Success, value);
+        return new Result<T>(StandardExitCodes.Success, value, string.Empty);
     }
 
     /// <summary>

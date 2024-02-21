@@ -24,11 +24,13 @@ public class Result
     /// </summary>
     /// <param name="exitCode">The exit code representing the outcome of the operation.</param>
     /// <param name="errorMessage">The error message associated with a failure.</param>
-    protected Result(ExitCode exitCode, string errorMessage = "")
+    [Obsolete("For MessagePack serialization only. Not intended for direct use in code.", false)]
+    public Result(ExitCode exitCode, string errorMessage)
     {
         ExitCode = exitCode ?? throw new ArgumentNullException(nameof(exitCode));
         ErrorMessage = errorMessage ?? string.Empty;
     }
+
 
     /// <summary>
     ///     Gets the exit code representing the outcome of the operation.
@@ -60,7 +62,7 @@ public class Result
     /// <returns>A success result.</returns>
     public static Result Success()
     {
-        return new Result(StandardExitCodes.Success);
+        return new Result(StandardExitCodes.Success,"");
     }
 
     /// <summary>

@@ -27,6 +27,7 @@ public abstract class ExitCode
         return Code.GetHashCode();
     }
 
+    
     public static bool operator ==(ExitCode left, ExitCode right)
     {
         return Equals(left, right);
