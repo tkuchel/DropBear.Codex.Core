@@ -10,9 +10,10 @@ public class Payload<T>
 
     [IgnoreMember] private readonly RSA _cryptoKey = RSA.Create();
 
+    [Key(3)] private readonly byte[] _exportedPublicKey;
+
     [Key(2)] private readonly byte[] _signature;
 
-    [Key(3)] private readonly byte[] _exportedPublicKey;
 
     public Payload(T data)
     {
@@ -23,17 +24,19 @@ public class Payload<T>
     }
 
     [SerializationConstructor]
-    public Payload(T data, byte[] checksum, byte[] signature, byte[] exportedPublicKey)
+    public Payload(T data, byte[] checksum, byte[] signature, byte[] exportedPublicKey, long timestamp)
     {
         Data = data;
         _checksum = checksum;
         _signature = signature;
         _exportedPublicKey = exportedPublicKey;
-
+        Timestamp = timestamp;
         _cryptoKey.ImportRSAPublicKey(exportedPublicKey, out _);
     }
 
     [Key(0)] [field: Key(0)] public T Data { get; }
+
+    [field: Key(4)] public long Timestamp { get; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
     public byte[] GetChecksum()
     {

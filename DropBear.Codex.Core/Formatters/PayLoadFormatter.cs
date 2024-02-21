@@ -9,24 +9,25 @@ public class PayloadFormatter<T> : IMessagePackFormatter<Payload<T>> where T : n
 {
     public void Serialize(ref MessagePackWriter writer, Payload<T> payload, MessagePackSerializerOptions options)
     {
-        // Ensure the number of elements written matches the header.
-        writer.WriteArrayHeader(4); // Corrected to include all elements: data, checksum, signature, and public key.
+        // Update the array header to account for the new Timestamp property.
+        writer.WriteArrayHeader(5); // Now includes data, checksum, signature, public key, and timestamp.
 
-        // Serialize data first, as it's key 0.
+        // Serialize properties in their defined order.
         MessagePackSerializer.Serialize(ref writer, payload.Data, options);
-
-        // Follow the order of properties as defined in Payload<T>.
         writer.Write(payload.GetChecksum());
         writer.Write(payload.GetSignature());
-        writer.Write(payload.GetExportedPublicKey()); // Assuming a getter method for the public key similar to others.
+        writer.Write(payload.GetExportedPublicKey());
+        writer.Write(payload.Timestamp); // Serialize the Timestamp property.
     }
 
     public Payload<T> Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
     {
-        // Expecting an array header of 4 elements.
+        // Expecting an array header of 5 elements to match the serialization order.
         var header = reader.ReadArrayHeader();
-        if (header != 4)
-            throw new InvalidOperationException("Expected array of length 4 for Payload<T> deserialization.");
+        if (header != 5)
+        {
+            throw new InvalidOperationException("Expected array of length 5 for Payload<T> deserialization.");
+        }
 
         // Deserialize data, which is the first element.
         var data = MessagePackSerializer.Deserialize<T>(ref reader, options);
@@ -42,9 +43,26 @@ public class PayloadFormatter<T> : IMessagePackFormatter<Payload<T>> where T : n
         var exportedPublicKey = exportedPublicKeySequence.HasValue
             ? exportedPublicKeySequence.Value.ToArray()
             : Array.Empty<byte>();
-
+        
+        var timestamp = reader.ReadInt64(); // Deserialize the Timestamp property.
+        
+        // Validate the timestamp.
+        if (!ValidateTimestamp(timestamp))
+        {
+            throw new InvalidOperationException("Invalid timestamp.");
+        }
+        
         // Use the serialization constructor to create the Payload instance.
-        return new Payload<T>(data, checksum, signature, exportedPublicKey);
+        return new Payload<T>(data, checksum, signature, exportedPublicKey, timestamp);
     }
+    
+    private static bool ValidateTimestamp(long timestamp)
+    {
+        // Example validation logic:
+        // Check if the timestamp is within an acceptable range (e.g., the last 5 minutes)
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        return timestamp <= now && timestamp >= now - (5 * 60 * 1000);
+    }
+
 }
 
