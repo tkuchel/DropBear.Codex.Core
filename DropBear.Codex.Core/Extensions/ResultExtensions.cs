@@ -1,4 +1,5 @@
-﻿using DropBear.Codex.Core.Resolvers;
+﻿using System.Reflection;
+using DropBear.Codex.Core.Resolvers;
 using DropBear.Codex.Core.ReturnTypes;
 using DropBear.Codex.Core.Utilities;
 using MessagePack;
@@ -12,6 +13,40 @@ public static class ResultExtensions
     private static readonly MessagePackSerializerOptions Options = MessagePackSerializerOptions.Standard
         .WithResolver(CustomResolver.Instance)
         .WithSecurity(MessagePackSecurity.UntrustedData);
+    
+    /// <summary>
+    /// Ensures that the type <typeparamref name="T"/> is compatible with MessagePack serialization by checking for the
+    /// presence of the <see cref="MessagePackObjectAttribute"/> on the type and the <see cref="KeyAttribute"/> on its properties.
+    /// </summary>
+    /// <typeparam name="T">The type to check for MessagePack serialization compatibility.</typeparam>
+    /// <exception cref="InvalidOperationException">Thrown if the type <typeparamref name="T"/> does not have the
+    /// <see cref="MessagePackObjectAttribute"/>, or if any of its properties meant to be serialized do not have the
+    /// <see cref="KeyAttribute"/>.</exception>
+    /// <remarks>
+    /// This method uses reflection to inspect the attributes applied to the type <typeparamref name="T"/> and its properties.
+    /// It is designed to be used in development or testing environments to ensure that types are properly annotated for
+    /// MessagePack serialization. Using this method in a production environment is not recommended due to the performance
+    /// overhead associated with reflection.
+    /// </remarks>
+    public static void EnsureMessagePackCompatibility<T>()
+    {
+        var type = typeof(T);
+        var messagePackObjectAttribute = type.GetCustomAttribute<MessagePackObjectAttribute>();
+        if (messagePackObjectAttribute == null)
+        {
+            throw new InvalidOperationException($"Type {type.Name} must have a MessagePackObject attribute.");
+        }
+
+        var properties = type.GetProperties();
+        foreach (var property in properties)
+        {
+            var keyAttribute = property.GetCustomAttribute<KeyAttribute>();
+            if (keyAttribute == null)
+            {
+                throw new InvalidOperationException($"Property {property.Name} in type {type.Name} must have a Key attribute for MessagePack serialization.");
+            }
+        }
+    }
 
 
     /// <summary>
@@ -91,6 +126,32 @@ public static class ResultExtensions
         var compressionOptions = Options.WithCompression(MessagePackCompression.Lz4BlockArray);
         return MessagePackSerializer.Serialize(result, compressionOptions);
     }
+    
+    /// <summary>
+    /// Serializes the given value using MessagePack with adaptive compression. The method initially
+    /// serializes the value without compression to check the serialized data size. If the size exceeds
+    /// a predefined threshold (e.g., 1KB), it serializes the value again with LZ4 block array compression.
+    /// </summary>
+    /// <typeparam name="T">The type of the value to serialize.</typeparam>
+    /// <param name="value">The value to serialize.</param>
+    /// <returns>A byte array containing the serialized data. The data may be compressed if its
+    /// uncompressed size exceeds the threshold.</returns>
+    /// <remarks>
+    /// This method aims to optimize the trade-off between serialization size and the overhead of compression.
+    /// It uses a simple size threshold to decide when to apply compression, which can be particularly beneficial
+    /// for larger data sizes where compression yields significant size reductions.
+    /// </remarks>
+    public static byte[] SerializeWithAdaptiveCompression<T>(T value) where T : notnull
+    {
+        var uncompressed = MessagePackSerializer.Serialize(value, MessagePackSerializerOptions.Standard);
+        if (uncompressed.Length > 4096) // Threshold of 4KB
+        {
+            return MessagePackSerializer.Serialize(value, MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray));
+        }
+        return uncompressed;
+    }
+
+
 
     /// <summary>
     ///     Deserializes and decompresses a byte array to a <see cref="Result{T}" /> using MessagePack with LZ4 block array
