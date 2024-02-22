@@ -43,11 +43,6 @@ jobs:
           name: nuget-packages
           path: ./nuget-packages/*.nupkg
 
-      - name: Setup GitHub CLI
-        uses: actions/setup-cli@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Create GitHub Release if Not Exists
         if: startsWith(github.ref, 'refs/tags/')
         run: |
