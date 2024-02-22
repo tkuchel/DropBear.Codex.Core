@@ -50,12 +50,14 @@ jobs:
           name: nuget-packages
           path: ./nuget-packages/*.nupkg
       
-      # This step shows how to create a release and upload artifacts to it.
+      # This step shows how to create a release and upload artifacts to it, adapted for PowerShell execution.
       - name: Create Release and Upload Artifacts
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ./nuget-packages/*.nupkg
+        run: |
+          Get-ChildItem ./nuget-packages/*.nupkg -Name | ForEach-Object {
+            gh release upload ${{ github.ref_name }} "./nuget-packages/$_" --clobber
+          }
+        shell: pwsh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       

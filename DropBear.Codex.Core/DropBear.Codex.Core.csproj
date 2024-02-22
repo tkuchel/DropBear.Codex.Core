@@ -13,24 +13,29 @@
         <PackageProjectUrl>https://github.com/tkuchel/DropBear.Codex.Core</PackageProjectUrl>
         <PackageLicenseUrl>https://www.gnu.org/licenses/lgpl-3.0.html#license-text</PackageLicenseUrl>
         <RepositoryUrl>https://github.com/tkuchel/DropBear.Codex.Core</RepositoryUrl>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
         <RepositoryType>Git</RepositoryType>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
 
-  <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
-  </ItemGroup>
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+    </ItemGroup>
 
 
     <ItemGroup>
-      <Folder Include="Enums\" />
-      <Folder Include="Interfaces\" />
+        <Folder Include="Enums\"/>
+        <Folder Include="Interfaces\"/>
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="MessagePack" Version="2.5.140" />
-      <PackageReference Include="MessagePack.Annotations" Version="2.5.140" />
+        <PackageReference Include="MessagePack" Version="2.5.140"/>
+        <PackageReference Include="MessagePack.Annotations" Version="2.5.140"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="..\README.md" Pack="true" PackagePath="\"/>
     </ItemGroup>
 
 </Project>
