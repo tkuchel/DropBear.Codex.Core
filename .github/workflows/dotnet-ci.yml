@@ -6,7 +6,6 @@ permissions:
 on:
   push:
     branches: [ master ]
-    # Trigger for tag creations, assuming semantic versioning
     tags:
       - 'v*.*.*'
   pull_request:
@@ -19,39 +18,50 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Fetches all history for all branches and tags, necessary for Nerdbank.GitVersioning
-      
-      # Setup .NET 8 SDK
+          fetch-depth: 0
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x' # Ensure this matches your project's SDK version
-      
-      # Restore dependencies
+          dotnet-version: '8.0.x'
+
       - name: Restore dependencies
         run: dotnet restore
-      
-      # Build
+
       - name: Build
         run: dotnet build --no-restore --configuration Release
-      
-      # Optionally run tests
+
       - name: Test
         run: dotnet test --no-build --verbosity normal --configuration Release
-      
-      # Pack NuGet packages using Nerdbank.GitVersioning for versioning
+
       - name: Pack
         run: dotnet pack --no-build --output ./nuget-packages --configuration Release
-      
-      # Archive NuGet packages
+
       - name: Archive NuGet packages
         uses: actions/upload-artifact@v4
         with:
           name: nuget-packages
           path: ./nuget-packages/*.nupkg
-      
-      # This step shows how to create a release and upload artifacts to it, adapted for PowerShell execution.
-      - name: Create Release and Upload Artifacts
+
+      - name: Setup GitHub CLI
+        uses: actions/setup-cli@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release if Not Exists
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          $ErrorActionPreference = 'Stop'
+          try {
+            gh release view ${{ github.ref_name }}
+          } catch {
+            gh release create ${{ github.ref_name }} --title "${{ github.ref_name }}" --notes "Release ${{ github.ref_name }}"
+          }
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Artifacts to Release
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           Get-ChildItem ./nuget-packages/*.nupkg -Name | ForEach-Object {
@@ -60,8 +70,7 @@ jobs:
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
-      # Publish NuGet packages (Conditional on tag push)
+
       - name: Publish NuGet Package
         if: startsWith(github.ref, 'refs/tags/')
         run: |
@@ -71,5 +80,3 @@ jobs:
         shell: pwsh
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-      
-      
