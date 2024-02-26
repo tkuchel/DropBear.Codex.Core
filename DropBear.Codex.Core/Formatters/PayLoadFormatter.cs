@@ -25,9 +25,7 @@ public class PayloadFormatter<T> : IMessagePackFormatter<Payload<T>> where T : n
         // Expecting an array header of 5 elements to match the serialization order.
         var header = reader.ReadArrayHeader();
         if (header != 5)
-        {
             throw new InvalidOperationException("Expected array of length 5 for Payload<T> deserialization.");
-        }
 
         // Deserialize data, which is the first element.
         var data = MessagePackSerializer.Deserialize<T>(ref reader, options);
@@ -43,26 +41,21 @@ public class PayloadFormatter<T> : IMessagePackFormatter<Payload<T>> where T : n
         var exportedPublicKey = exportedPublicKeySequence.HasValue
             ? exportedPublicKeySequence.Value.ToArray()
             : Array.Empty<byte>();
-        
+
         var timestamp = reader.ReadInt64(); // Deserialize the Timestamp property.
-        
+
         // Validate the timestamp.
-        if (!ValidateTimestamp(timestamp))
-        {
-            throw new InvalidOperationException("Invalid timestamp.");
-        }
-        
+        if (!ValidateTimestamp(timestamp)) throw new InvalidOperationException("Invalid timestamp.");
+
         // Use the serialization constructor to create the Payload instance.
         return new Payload<T>(data, checksum, signature, exportedPublicKey, timestamp);
     }
-    
+
     private static bool ValidateTimestamp(long timestamp)
     {
         // Example validation logic:
         // Check if the timestamp is within an acceptable range (e.g., the last 5 minutes)
         var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        return timestamp <= now && timestamp >= now - (5 * 60 * 1000);
+        return timestamp <= now && timestamp >= now - 5 * 60 * 1000;
     }
-
 }
-

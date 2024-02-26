@@ -1,14 +1,14 @@
-﻿using DropBear.Codex.Core.ReturnTypes;
+﻿using DropBear.Codex.Core.Models;
+using DropBear.Codex.Core.ReturnTypes;
 using MessagePack;
 using MessagePack.Formatters;
-using System;
-using DropBear.Codex.Core.Models;
 
 namespace DropBear.Codex.Core.Formatters;
 
 public class ResultWithPayloadFormatter<T> : IMessagePackFormatter<ResultWithPayload<T>> where T : notnull
 {
-    public void Serialize(ref MessagePackWriter writer, ResultWithPayload<T> value, MessagePackSerializerOptions options)
+    public void Serialize(ref MessagePackWriter writer, ResultWithPayload<T> value,
+        MessagePackSerializerOptions options)
     {
         if (value == null)
         {
@@ -62,13 +62,8 @@ public class ResultWithPayloadFormatter<T> : IMessagePackFormatter<ResultWithPay
         }
 
         if (isSuccess && payload != null)
-        {
             // Use the deserialized Payload<T> to create a successful ResultWithPayload<T>
             return ResultWithPayload<T>.Success(payload.Data);
-        }
-        else
-        {
-            return ResultWithPayload<T>.Failure(errorMessage);
-        }
+        return ResultWithPayload<T>.Failure(errorMessage);
     }
 }

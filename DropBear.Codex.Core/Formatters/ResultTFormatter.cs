@@ -2,6 +2,8 @@
 using DropBear.Codex.Core.ReturnTypes;
 using MessagePack;
 using MessagePack.Formatters;
+using Newtonsoft.Json;
+using System;
 
 namespace DropBear.Codex.Core.Formatters;
 
@@ -15,7 +17,22 @@ public class ResultFormatter<T> : IMessagePackFormatter<Result<T>> where T : not
             return;
         }
 
-        var headerSize = value.IsSuccess ? 3 : 2; // Adjust based on whether T is included
+        string jsonValue = null;
+        if (value.IsSuccess)
+        {
+            try
+            {
+                jsonValue = JsonConvert.SerializeObject(value.Value);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception or handle it as appropriate
+                // Example: Log.Error(ex, "Failed to serialize Result<T>.Value to JSON.");
+                jsonValue = "Error: Could not serialize value to JSON.";
+            }
+        }
+
+        var headerSize = value.IsSuccess ? 3 : 2;
         writer.WriteMapHeader(headerSize);
 
         writer.Write(nameof(Result<T>.ExitCode));
@@ -27,7 +44,7 @@ public class ResultFormatter<T> : IMessagePackFormatter<Result<T>> where T : not
         if (value.IsSuccess)
         {
             writer.Write("Value");
-            MessagePackSerializer.Serialize(ref writer, value.Value, options);
+            writer.Write(jsonValue); // Write the JSON string or error message
         }
     }
 
@@ -38,7 +55,7 @@ public class ResultFormatter<T> : IMessagePackFormatter<Result<T>> where T : not
 
         var count = reader.ReadMapHeader();
         ExitCode exitCode = null;
-        var errorMessage = string.Empty;
+        string errorMessage = string.Empty;
         T value = default;
 
         for (var i = 0; i < count; i++)
@@ -53,15 +70,22 @@ public class ResultFormatter<T> : IMessagePackFormatter<Result<T>> where T : not
                     errorMessage = reader.ReadString();
                     break;
                 case "Value":
-                    value = MessagePackSerializer.Deserialize<T>(ref reader, options);
+                    var jsonValue = reader.ReadString();
+                    try
+                    {
+                        value = jsonValue != null ? JsonConvert.DeserializeObject<T>(jsonValue) : default;
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log the exception or handle it as appropriate
+                        // Example: Log.Error(ex, "Failed to deserialize JSON to Result<T>.Value.");
+                    }
                     break;
                 default:
                     throw new InvalidOperationException($"Unknown property: {propertyName}");
             }
         }
 
-        if (value != null)
-            return Result<T>.Success(value);
-        return Result<T>.Failure(errorMessage, exitCode);
+        return value != null ? Result<T>.Success(value) : Result<T>.Failure(errorMessage, exitCode);
     }
 }
