@@ -40,7 +40,7 @@ public class Result<T> where T : notnull
     ///     Gets the exit code representing the outcome of the operation.
     /// </summary>
     [Key(0)]
-    public ExitCode ExitCode { get; }
+    public ExitCode ExitCode { get; } = null!;
 
     /// <summary>
     ///     Gets the value associated with a successful result. Throws InvalidOperationException if the result is a failure.
@@ -64,7 +64,7 @@ public class Result<T> where T : notnull
     ///     Gets the error message associated with a failure.
     /// </summary>
     [Key(1)]
-    public string ErrorMessage { get; }
+    public string ErrorMessage { get; } = null!;
 
     /// <summary>
     ///     Creates a successful result containing the specified value.
@@ -73,7 +73,9 @@ public class Result<T> where T : notnull
     /// <returns>A successful result.</returns>
     public static Result<T> Success(T value)
     {
+#pragma warning disable CS0618 // Type or member is obsolete
         return new Result<T>(StandardExitCodes.Success, value, string.Empty);
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     /// <summary>
@@ -82,12 +84,14 @@ public class Result<T> where T : notnull
     /// <param name="errorMessage">The error message for the failure.</param>
     /// <param name="exitCode">The exit code representing the specific type of failure.</param>
     /// <returns>A failure result.</returns>
-    public static Result<T> Failure(string errorMessage, ExitCode exitCode = null)
+    public static Result<T> Failure(string errorMessage, ExitCode? exitCode = null)
     {
         if (string.IsNullOrWhiteSpace(errorMessage))
             throw new ArgumentException("Error message cannot be null or whitespace.", nameof(errorMessage));
 
-        return new Result<T>(exitCode ?? StandardExitCodes.GeneralError, default, errorMessage);
+#pragma warning disable CS0618 // Type or member is obsolete
+        return new Result<T>(exitCode ?? StandardExitCodes.GeneralError, default!, errorMessage);
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     /// <summary>
@@ -118,7 +122,8 @@ public class Result<T> where T : notnull
     /// <returns>The result of executing either the onSuccess or onFailure function.</returns>
     public TResult Match<TResult>(Func<T, TResult> onSuccess, Func<string, TResult> onFailure)
     {
-        return IsSuccess ? onSuccess(_value) : onFailure(ErrorMessage);
+        if (_value != null) return IsSuccess ? onSuccess(_value) : onFailure(ErrorMessage);
+        throw new InvalidOperationException("Cannot match a failed result without a value.");
     }
 
     /// <summary>
@@ -154,6 +159,8 @@ public class Result<T> where T : notnull
     public async Task<Result<TResult>> MatchAsync<TResult>(Func<T, Task<TResult>> onSuccess,
         Func<string, Task<Result<TResult>>> onFailure) where TResult : notnull
     {
-        return IsSuccess ? Result<TResult>.Success(await onSuccess(_value)) : await onFailure(ErrorMessage);
+        if (_value != null)
+            return IsSuccess ? Result<TResult>.Success(await onSuccess(_value)) : await onFailure(ErrorMessage);
+        throw new InvalidOperationException("Cannot match a failed result without a value.");
     }
 }

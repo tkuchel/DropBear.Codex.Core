@@ -37,12 +37,12 @@ public class ResultWithPayloadFormatter<T> : IMessagePackFormatter<ResultWithPay
 
     public ResultWithPayload<T> Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
     {
-        if (reader.TryReadNil()) return null;
+        if (reader.TryReadNil()) return null!;
 
         var count = reader.ReadMapHeader();
         var errorMessage = string.Empty;
         var isSuccess = false;
-        Payload<T> payload = null;
+        Payload<T> payload = null!;
 
         // Initialize PayloadFormatter<T> for deserializing the payload.
         var payloadFormatter = new PayloadFormatter<T>();
@@ -69,6 +69,6 @@ public class ResultWithPayloadFormatter<T> : IMessagePackFormatter<ResultWithPay
 
         if (isSuccess && payload != null) return ResultWithPayload<T>.Success(payload.Data);
 
-        return ResultWithPayload<T>.Failure(errorMessage);
+        return ResultWithPayload<T>.Failure(errorMessage ?? string.Empty);
     }
 }

@@ -17,7 +17,7 @@ public abstract class ExitCode
     [Key(1)]
     public string Description { get; }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         return obj is ExitCode other && Code == other.Code;
     }
@@ -33,7 +33,7 @@ public abstract class ExitCode
         return Equals(left, right);
     }
 
-    public static bool operator !=(ExitCode left, ExitCode right)
+    public static bool operator !=(ExitCode left, ExitCode? right)
     {
         return !Equals(left, right);
     }

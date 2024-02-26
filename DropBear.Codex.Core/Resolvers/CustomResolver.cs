@@ -17,7 +17,7 @@ public class CustomResolver : IFormatterResolver
     {
     }
 
-    public IMessagePackFormatter<T> GetFormatter<T>()
+    public IMessagePackFormatter<T>? GetFormatter<T>()
     {
         return FormatterCache<T>.Formatter;
     }
@@ -25,7 +25,7 @@ public class CustomResolver : IFormatterResolver
     // Static class to cache formatter instances
     private static class FormatterCache<T>
     {
-        public static readonly IMessagePackFormatter<T> Formatter;
+        public static readonly IMessagePackFormatter<T>? Formatter;
 
         static FormatterCache()
         {
@@ -37,18 +37,18 @@ public class CustomResolver : IFormatterResolver
             else if (typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition() == typeof(Result<>))
             {
                 var formatterType = typeof(ResultFormatter<>).MakeGenericType(typeof(T).GetGenericArguments()[0]);
-                Formatter = (IMessagePackFormatter<T>)Activator.CreateInstance(formatterType);
+                Formatter = (IMessagePackFormatter<T>)Activator.CreateInstance(formatterType)!;
             }
             else if (typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition() == typeof(ResultWithPayload<>))
             {
                 var formatterType =
                     typeof(ResultWithPayloadFormatter<>).MakeGenericType(typeof(T).GetGenericArguments()[0]);
-                Formatter = (IMessagePackFormatter<T>)Activator.CreateInstance(formatterType);
+                Formatter = (IMessagePackFormatter<T>)Activator.CreateInstance(formatterType)!;
             }
             else if (typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition() == typeof(Payload<>))
             {
                 var formatterType = typeof(PayloadFormatter<>).MakeGenericType(typeof(T).GetGenericArguments()[0]);
-                Formatter = (IMessagePackFormatter<T>)Activator.CreateInstance(formatterType);
+                Formatter = (IMessagePackFormatter<T>)Activator.CreateInstance(formatterType)!;
             }
             else
             {

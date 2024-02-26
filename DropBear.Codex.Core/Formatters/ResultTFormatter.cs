@@ -11,13 +11,7 @@ public class ResultFormatter<T> : IMessagePackFormatter<Result<T>> where T : not
 {
     public void Serialize(ref MessagePackWriter writer, Result<T> value, MessagePackSerializerOptions options)
     {
-        if (value == null)
-        {
-            writer.WriteNil();
-            return;
-        }
-
-        string jsonValue = null;
+        string? jsonValue = null;
         if (value.IsSuccess)
         {
             try
@@ -28,7 +22,7 @@ public class ResultFormatter<T> : IMessagePackFormatter<Result<T>> where T : not
             {
                 // Log the exception or handle it as appropriate
                 // Example: Log.Error(ex, "Failed to serialize Result<T>.Value to JSON.");
-                jsonValue = "Error: Could not serialize value to JSON.";
+                jsonValue = "Error: Could not serialize value to JSON. " + ex.Message;
             }
         }
 
@@ -48,15 +42,15 @@ public class ResultFormatter<T> : IMessagePackFormatter<Result<T>> where T : not
         }
     }
 
-    public Result<T> Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+    public Result<T> Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions? options)
     {
         if (reader.TryReadNil())
-            return null;
+            return null!;
 
         var count = reader.ReadMapHeader();
-        ExitCode exitCode = null;
-        string errorMessage = string.Empty;
-        T value = default;
+        ExitCode? exitCode = null;
+        var errorMessage = string.Empty;
+        T? value = default!;
 
         for (var i = 0; i < count; i++)
         {
@@ -73,12 +67,13 @@ public class ResultFormatter<T> : IMessagePackFormatter<Result<T>> where T : not
                     var jsonValue = reader.ReadString();
                     try
                     {
-                        value = jsonValue != null ? JsonConvert.DeserializeObject<T>(jsonValue) : default;
+                        value = (jsonValue != null ? JsonConvert.DeserializeObject<T>(jsonValue) : default!)!;
                     }
                     catch (Exception ex)
                     {
                         // Log the exception or handle it as appropriate
                         // Example: Log.Error(ex, "Failed to deserialize JSON to Result<T>.Value.");
+                        errorMessage = "Error: Could not deserialize value from JSON. " + ex.Message;
                     }
                     break;
                 default:
@@ -86,6 +81,9 @@ public class ResultFormatter<T> : IMessagePackFormatter<Result<T>> where T : not
             }
         }
 
-        return value != null ? Result<T>.Success(value) : Result<T>.Failure(errorMessage, exitCode);
+        if (errorMessage != null)
+            return value == null ? Result<T>.Failure(errorMessage, exitCode) : Result<T>.Success(value);
+        
+        throw new InvalidOperationException("Invalid Result<T> data.");
     }
 }

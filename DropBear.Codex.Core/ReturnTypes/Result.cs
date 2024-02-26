@@ -36,7 +36,7 @@ public class Result
     ///     Gets the exit code representing the outcome of the operation.
     /// </summary>
     [Key(0)]
-    public ExitCode ExitCode { get; }
+    public ExitCode ExitCode { get; } = null!;
 
     /// <summary>
     ///     Gets a value indicating whether the operation was successful.
@@ -54,7 +54,7 @@ public class Result
     ///     Gets the error message associated with a failure.
     /// </summary>
     [Key(1)]
-    public string ErrorMessage { get; }
+    public string ErrorMessage { get; } = null!;
 
     /// <summary>
     ///     Creates a success result.
@@ -62,7 +62,9 @@ public class Result
     /// <returns>A success result.</returns>
     public static Result Success()
     {
+#pragma warning disable CS0618 // Type or member is obsolete
         return new Result(StandardExitCodes.Success,"");
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     /// <summary>
@@ -77,7 +79,9 @@ public class Result
         if (string.IsNullOrWhiteSpace(errorMessage))
             throw new ArgumentException("Error message cannot be null or whitespace.", nameof(errorMessage));
 
+#pragma warning disable CS0618 // Type or member is obsolete
         return new Result(exitCode ?? StandardExitCodes.GeneralError, errorMessage);
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     public override bool Equals(object? obj)

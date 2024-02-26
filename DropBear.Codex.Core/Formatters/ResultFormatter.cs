@@ -1,4 +1,5 @@
 ﻿using DropBear.Codex.Core.ExitCodes.Base;
+using DropBear.Codex.Core.ExitCodes.Standard;
 using DropBear.Codex.Core.ReturnTypes;
 using MessagePack;
 using MessagePack.Formatters;
@@ -9,12 +10,6 @@ public class ResultFormatter : IMessagePackFormatter<Result>
 {
     public void Serialize(ref MessagePackWriter writer, Result value, MessagePackSerializerOptions options)
     {
-        if (value == null)
-        {
-            writer.WriteNil();
-            return;
-        }
-
         // Assuming Result has an ExitCode and ErrorMessage for simplicity
         writer.WriteMapHeader(2);
 
@@ -27,10 +22,10 @@ public class ResultFormatter : IMessagePackFormatter<Result>
 
     public Result Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
     {
-        if (reader.TryReadNil()) return null;
+        if (reader.TryReadNil()) return null!;
 
         var count = reader.ReadMapHeader();
-        ExitCode exitCode = null;
+        ExitCode exitCode = null!;
         var errorMessage = string.Empty;
 
         for (var i = 0; i < count; i++)
@@ -49,7 +44,10 @@ public class ResultFormatter : IMessagePackFormatter<Result>
             }
         }
 
-        // Use a constructor or a factory method as appropriate
+        if (errorMessage == null) throw new InvalidOperationException("Invalid Result data.");
+        if (exitCode == null!) throw new InvalidOperationException("Invalid Result data.");
+#pragma warning disable CS0618 // Type or member is obsolete
         return new Result(exitCode, errorMessage);
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 }

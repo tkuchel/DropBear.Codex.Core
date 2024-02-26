@@ -9,7 +9,7 @@ public class ExitCodeFormatter : IMessagePackFormatter<ExitCode>
 {
     public void Serialize(ref MessagePackWriter writer, ExitCode value, MessagePackSerializerOptions options)
     {
-        if (value == null)
+        if (value == null!)
         {
             writer.WriteNil();
             return;
@@ -27,14 +27,12 @@ public class ExitCodeFormatter : IMessagePackFormatter<ExitCode>
 
     public ExitCode Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
     {
-        if (reader.TryReadNil()) return null;
+        if (reader.TryReadNil()) return null!;
 
         var count = reader.ReadMapHeader();
-        string typeName = null;
-        int code = 0;
-        string description = null;
+        string? typeName = null;
 
-        for (int i = 0; i < count; i++)
+        for (var i = 0; i < count; i++)
         {
             var propertyName = reader.ReadString();
             switch (propertyName)
@@ -43,10 +41,10 @@ public class ExitCodeFormatter : IMessagePackFormatter<ExitCode>
                     typeName = reader.ReadString();
                     break;
                 case "Code":
-                    code = reader.ReadInt32();
+                    reader.ReadInt32();
                     break;
                 case "Description":
-                    description = reader.ReadString();
+                    reader.ReadString();
                     break;
             }
         }
