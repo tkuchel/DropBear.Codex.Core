@@ -16,6 +16,9 @@ public class ResultWithPayloadFormatter<T> : IMessagePackFormatter<ResultWithPay
             return;
         }
 
+        // Initialize PayloadFormatter<T> for serializing the payload.
+        var payloadFormatter = new PayloadFormatter<T>();
+
         writer.WriteMapHeader(value.IsSuccess ? 3 : 2);
 
         writer.Write(nameof(ResultWithPayload<T>.ErrorMessage));
@@ -27,8 +30,8 @@ public class ResultWithPayloadFormatter<T> : IMessagePackFormatter<ResultWithPay
         if (value.IsSuccess && value.Payload != null)
         {
             writer.Write("Payload");
-            // Given Payload<T> encapsulates T, serialize the Payload<T> directly
-            MessagePackSerializer.Serialize(ref writer, value.Payload, options);
+            // Use PayloadFormatter<T> to serialize the Payload object.
+            payloadFormatter.Serialize(ref writer, value.Payload, options);
         }
     }
 
@@ -40,6 +43,9 @@ public class ResultWithPayloadFormatter<T> : IMessagePackFormatter<ResultWithPay
         var errorMessage = string.Empty;
         var isSuccess = false;
         Payload<T> payload = null;
+
+        // Initialize PayloadFormatter<T> for deserializing the payload.
+        var payloadFormatter = new PayloadFormatter<T>();
 
         for (var i = 0; i < count; i++)
         {
@@ -53,17 +59,16 @@ public class ResultWithPayloadFormatter<T> : IMessagePackFormatter<ResultWithPay
                     isSuccess = reader.ReadBoolean();
                     break;
                 case "Payload":
-                    // Deserialize the Payload<T> object directly
-                    payload = MessagePackSerializer.Deserialize<Payload<T>>(ref reader, options);
+                    // Use PayloadFormatter<T> to deserialize the Payload object.
+                    payload = payloadFormatter.Deserialize(ref reader, options);
                     break;
                 default:
                     throw new InvalidOperationException($"Unknown property: {propertyName}");
             }
         }
 
-        if (isSuccess && payload != null)
-            // Use the deserialized Payload<T> to create a successful ResultWithPayload<T>
-            return ResultWithPayload<T>.Success(payload.Data);
+        if (isSuccess && payload != null) return ResultWithPayload<T>.Success(payload.Data);
+
         return ResultWithPayload<T>.Failure(errorMessage);
     }
 }
