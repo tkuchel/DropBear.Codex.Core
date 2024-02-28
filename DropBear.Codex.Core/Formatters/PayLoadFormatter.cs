@@ -7,17 +7,17 @@ namespace DropBear.Codex.Core.Formatters;
 
 public class PayloadFormatter<T> : IMessagePackFormatter<Payload<T>> where T : notnull
 {
-    public void Serialize(ref MessagePackWriter writer, Payload<T> payload, MessagePackSerializerOptions options)
+    public void Serialize(ref MessagePackWriter writer, Payload<T> value, MessagePackSerializerOptions options)
     {
         // Update the array header to account for the new Timestamp property.
         writer.WriteArrayHeader(5); // Now includes data, checksum, signature, public key, and timestamp.
 
         // Serialize properties in their defined order.
-        MessagePackSerializer.Serialize(ref writer, payload.Data, options);
-        writer.Write(payload.GetChecksum());
-        writer.Write(payload.GetSignature());
-        writer.Write(payload.GetExportedPublicKey());
-        writer.Write(payload.Timestamp); // Serialize the Timestamp property.
+        MessagePackSerializer.Serialize(ref writer, value.Data, options);
+        writer.Write(value.GetChecksum());
+        writer.Write(value.GetSignature());
+        writer.Write(value.GetExportedPublicKey());
+        writer.Write(value.Timestamp); // Serialize the Timestamp property.
     }
 
     public Payload<T> Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)

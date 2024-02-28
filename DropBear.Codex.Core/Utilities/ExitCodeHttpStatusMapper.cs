@@ -10,7 +10,7 @@ public static class ExitCodeHttpStatusMapper
     {
         { typeof(SuccessExitCode), HttpStatusCode.OK },
         { typeof(GeneralErrorExitCode), HttpStatusCode.BadRequest },
-        { typeof(UnspecifiedExceptionExitCode), HttpStatusCode.InternalServerError }
+        { typeof(UnspecifiedExceptionExitCode), HttpStatusCode.InternalServerError },
         // Add mappings for other exit codes as necessary
     };
 
@@ -18,8 +18,6 @@ public static class ExitCodeHttpStatusMapper
     {
         ArgumentNullException.ThrowIfNull(exitCode);
 
-        return Map.TryGetValue(exitCode.GetType(), out var statusCode)
-            ? statusCode
-            : HttpStatusCode.InternalServerError;
+        return Map.GetValueOrDefault(exitCode.GetType(), HttpStatusCode.InternalServerError);
     }
 }

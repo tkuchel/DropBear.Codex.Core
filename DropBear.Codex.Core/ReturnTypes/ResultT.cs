@@ -10,10 +10,11 @@ namespace DropBear.Codex.Core.ReturnTypes;
 /// </summary>
 /// <typeparam name="T">The type of the value returned in case of a successful operation.</typeparam>
 [MessagePackObject]
+#pragma warning disable MA0048
 public class Result<T> where T : notnull
+#pragma warning restore MA0048
 {
-    [Key(2)]
-    private readonly T? _value;
+    [Key(2)] private readonly T? _value;
 
     /// <summary>
     ///     For deserialization purposes only. Not intended for direct use in code.
@@ -30,12 +31,14 @@ public class Result<T> where T : notnull
     /// <param name="value">The value associated with a successful result.</param>
     /// <param name="errorMessage">The error message associated with a failure.</param>
     [Obsolete("For MessagePack serialization only. Not intended for direct use in code.")]
-    public Result(ExitCode exitCode, T value, string errorMessage)
+    // ReSharper disable once MemberCanBePrivate.Global
+    public Result(ExitCode exitCode, T value, string? errorMessage)
     {
         ExitCode = exitCode ?? throw new ArgumentNullException(nameof(exitCode));
         _value = value;
         ErrorMessage = errorMessage ?? string.Empty;
     }
+
     /// <summary>
     ///     Gets the exit code representing the outcome of the operation.
     /// </summary>
@@ -58,6 +61,7 @@ public class Result<T> where T : notnull
     ///     Indicates whether the operation failed.
     /// </summary>
     [IgnoreMember]
+    // ReSharper disable once MemberCanBePrivate.Global
     public bool IsFailure => !IsSuccess;
 
     /// <summary>
@@ -71,7 +75,9 @@ public class Result<T> where T : notnull
     /// </summary>
     /// <param name="value">The value to be associated with the successful result.</param>
     /// <returns>A successful result.</returns>
+#pragma warning disable CA1000
     public static Result<T> Success(T value)
+#pragma warning restore CA1000
     {
 #pragma warning disable CS0618 // Type or member is obsolete
         return new Result<T>(StandardExitCodes.Success, value, string.Empty);
@@ -84,7 +90,9 @@ public class Result<T> where T : notnull
     /// <param name="errorMessage">The error message for the failure.</param>
     /// <param name="exitCode">The exit code representing the specific type of failure.</param>
     /// <returns>A failure result.</returns>
-    public static Result<T> Failure(string errorMessage, ExitCode? exitCode = null)
+#pragma warning disable CA1000
+    public static Result<T> Failure(string? errorMessage, ExitCode? exitCode = null)
+#pragma warning restore CA1000
     {
         if (string.IsNullOrWhiteSpace(errorMessage))
             throw new ArgumentException("Error message cannot be null or whitespace.", nameof(errorMessage));
@@ -133,7 +141,7 @@ public class Result<T> where T : notnull
     /// <returns>A Task representing the asynchronous operation.</returns>
     public async Task OnSuccessAsync(Func<T, Task> action)
     {
-        if (IsSuccess && _value != null) await action(_value);
+        if (IsSuccess && _value != null) await action(_value).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -143,7 +151,7 @@ public class Result<T> where T : notnull
     /// <returns>A Task representing the asynchronous operation.</returns>
     public async Task OnFailureAsync(Func<string, Task> action)
     {
-        if (IsFailure) await action(ErrorMessage);
+        if (IsFailure) await action(ErrorMessage).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -160,7 +168,9 @@ public class Result<T> where T : notnull
         Func<string, Task<Result<TResult>>> onFailure) where TResult : notnull
     {
         if (_value != null)
-            return IsSuccess ? Result<TResult>.Success(await onSuccess(_value)) : await onFailure(ErrorMessage);
+            return IsSuccess
+                ? Result<TResult>.Success(await onSuccess(_value).ConfigureAwait(false))
+                : await onFailure(ErrorMessage).ConfigureAwait(false);
         throw new InvalidOperationException("Cannot match a failed result without a value.");
     }
 }

@@ -10,12 +10,6 @@ public class ResultWithPayloadFormatter<T> : IMessagePackFormatter<ResultWithPay
     public void Serialize(ref MessagePackWriter writer, ResultWithPayload<T> value,
         MessagePackSerializerOptions options)
     {
-        if (value == null)
-        {
-            writer.WriteNil();
-            return;
-        }
-
         // Initialize PayloadFormatter<T> for serializing the payload.
         var payloadFormatter = new PayloadFormatter<T>();
 
@@ -27,12 +21,9 @@ public class ResultWithPayloadFormatter<T> : IMessagePackFormatter<ResultWithPay
         writer.Write(nameof(ResultWithPayload<T>.IsSuccess));
         writer.Write(value.IsSuccess);
 
-        if (value.IsSuccess && value.Payload != null)
-        {
-            writer.Write("Payload");
-            // Use PayloadFormatter<T> to serialize the Payload object.
-            payloadFormatter.Serialize(ref writer, value.Payload, options);
-        }
+        if (!value.IsSuccess || value.Payload is null) return;
+        writer.Write("Payload");
+        payloadFormatter.Serialize(ref writer, value.Payload, options);
     }
 
     public ResultWithPayload<T> Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
@@ -67,7 +58,7 @@ public class ResultWithPayloadFormatter<T> : IMessagePackFormatter<ResultWithPay
             }
         }
 
-        if (isSuccess && payload != null) return ResultWithPayload<T>.Success(payload.Data);
+        if (isSuccess && payload is not null) return ResultWithPayload<T>.Success(payload.Data);
 
         return ResultWithPayload<T>.Failure(errorMessage ?? string.Empty);
     }

@@ -17,44 +17,42 @@ public class CustomResolver : IFormatterResolver
     {
     }
 
-    public IMessagePackFormatter<T>? GetFormatter<T>()
-    {
-        return FormatterCache<T>.Formatter;
-    }
+    public IMessagePackFormatter<T>? GetFormatter<T>() => FormatterCache<T>.Formatter;
 
     // Static class to cache formatter instances
     private static class FormatterCache<T>
     {
-        public static readonly IMessagePackFormatter<T>? Formatter;
+        public static readonly IMessagePackFormatter<T>? Formatter = CreateFormatter();
 
-        static FormatterCache()
+        private static IMessagePackFormatter<T>? CreateFormatter()
         {
             // Initialize formatters based on type
-            if (typeof(T) == typeof(ExitCode))
+            if (typeof(T) == typeof(ExitCode)) return (IMessagePackFormatter<T>)new ExitCodeFormatter();
+
+            if (typeof(T).IsGenericType)
             {
-                Formatter = (IMessagePackFormatter<T>)new ExitCodeFormatter();
+                if (typeof(T).GetGenericTypeDefinition() == typeof(Result<>))
+                {
+                    var formatterType = typeof(ResultFormatter<>).MakeGenericType(typeof(T).GetGenericArguments()[0]);
+                    return (IMessagePackFormatter<T>)Activator.CreateInstance(formatterType)!;
+                }
+
+                if (typeof(T).GetGenericTypeDefinition() == typeof(ResultWithPayload<>))
+                {
+                    var formatterType =
+                        typeof(ResultWithPayloadFormatter<>).MakeGenericType(typeof(T).GetGenericArguments()[0]);
+                    return (IMessagePackFormatter<T>)Activator.CreateInstance(formatterType)!;
+                }
+
+                if (typeof(T).GetGenericTypeDefinition() == typeof(Payload<>))
+                {
+                    var formatterType = typeof(PayloadFormatter<>).MakeGenericType(typeof(T).GetGenericArguments()[0]);
+                    return (IMessagePackFormatter<T>)Activator.CreateInstance(formatterType)!;
+                }
             }
-            else if (typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition() == typeof(Result<>))
-            {
-                var formatterType = typeof(ResultFormatter<>).MakeGenericType(typeof(T).GetGenericArguments()[0]);
-                Formatter = (IMessagePackFormatter<T>)Activator.CreateInstance(formatterType)!;
-            }
-            else if (typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition() == typeof(ResultWithPayload<>))
-            {
-                var formatterType =
-                    typeof(ResultWithPayloadFormatter<>).MakeGenericType(typeof(T).GetGenericArguments()[0]);
-                Formatter = (IMessagePackFormatter<T>)Activator.CreateInstance(formatterType)!;
-            }
-            else if (typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition() == typeof(Payload<>))
-            {
-                var formatterType = typeof(PayloadFormatter<>).MakeGenericType(typeof(T).GetGenericArguments()[0]);
-                Formatter = (IMessagePackFormatter<T>)Activator.CreateInstance(formatterType)!;
-            }
-            else
-            {
-                // Fallback to standard resolver if no custom or dynamic formatter is found
-                Formatter = StandardResolver.Instance.GetFormatter<T>();
-            }
+
+            // Fallback to standard resolver if no custom or dynamic formatter is found
+            return StandardResolver.Instance.GetFormatter<T>();
         }
     }
 }

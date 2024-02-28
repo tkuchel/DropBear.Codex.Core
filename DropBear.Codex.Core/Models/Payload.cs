@@ -38,20 +38,11 @@ public class Payload<T>
 
     [field: Key(4)] public long Timestamp { get; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
-    public byte[] GetChecksum()
-    {
-        return _checksum;
-    }
+    public byte[] GetChecksum() => _checksum;
 
-    public byte[] GetSignature()
-    {
-        return _signature;
-    }
+    public byte[] GetSignature() => _signature;
 
-    public byte[] GetExportedPublicKey()
-    {
-        return _exportedPublicKey;
-    }
+    public byte[] GetExportedPublicKey() => _exportedPublicKey;
 
     public bool VerifyIntegrity()
     {
@@ -59,24 +50,17 @@ public class Payload<T>
         return VerifyChecksum(computedChecksum) && VerifySignature(computedChecksum);
     }
 
-    private bool VerifyChecksum(byte[] checksum)
-    {
-        return _checksum.SequenceEqual(checksum);
-    }
+    private bool VerifyChecksum(byte[] checksum) => _checksum.SequenceEqual(checksum);
 
-    private byte[] ComputeChecksum(T data)
+    private static byte[] ComputeChecksum(T data)
     {
         var serialized = MessagePackSerializer.Serialize(data);
         return SHA256.HashData(serialized);
     }
 
-    private byte[] SignChecksum(byte[] checksum)
-    {
-        return _cryptoKey.SignData(checksum, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-    }
+    private byte[] SignChecksum(byte[] checksum) =>
+        _cryptoKey.SignData(checksum, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
 
-    private bool VerifySignature(byte[] checksum)
-    {
-        return _cryptoKey.VerifyData(checksum, _signature, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-    }
+    private bool VerifySignature(byte[] checksum) =>
+        _cryptoKey.VerifyData(checksum, _signature, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
 }

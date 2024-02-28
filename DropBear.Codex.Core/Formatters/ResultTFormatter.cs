@@ -3,17 +3,17 @@ using DropBear.Codex.Core.ReturnTypes;
 using MessagePack;
 using MessagePack.Formatters;
 using Newtonsoft.Json;
-using System;
 
 namespace DropBear.Codex.Core.Formatters;
 
+#pragma warning disable MA0048
 public class ResultFormatter<T> : IMessagePackFormatter<Result<T>> where T : notnull
+#pragma warning restore MA0048
 {
     public void Serialize(ref MessagePackWriter writer, Result<T> value, MessagePackSerializerOptions options)
     {
         string? jsonValue = null;
         if (value.IsSuccess)
-        {
             try
             {
                 jsonValue = JsonConvert.SerializeObject(value.Value);
@@ -24,7 +24,6 @@ public class ResultFormatter<T> : IMessagePackFormatter<Result<T>> where T : not
                 // Example: Log.Error(ex, "Failed to serialize Result<T>.Value to JSON.");
                 jsonValue = "Error: Could not serialize value to JSON. " + ex.Message;
             }
-        }
 
         var headerSize = value.IsSuccess ? 3 : 2;
         writer.WriteMapHeader(headerSize);
@@ -35,11 +34,9 @@ public class ResultFormatter<T> : IMessagePackFormatter<Result<T>> where T : not
         writer.Write(nameof(Result<T>.ErrorMessage));
         writer.Write(value.ErrorMessage);
 
-        if (value.IsSuccess)
-        {
-            writer.Write("Value");
-            writer.Write(jsonValue); // Write the JSON string or error message
-        }
+        if (!value.IsSuccess) return;
+        writer.Write("Value");
+        writer.Write(jsonValue);
     }
 
     public Result<T> Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions? options)
@@ -67,23 +64,24 @@ public class ResultFormatter<T> : IMessagePackFormatter<Result<T>> where T : not
                     var jsonValue = reader.ReadString();
                     try
                     {
-                        value = (jsonValue != null ? JsonConvert.DeserializeObject<T>(jsonValue) : default!)!;
+                        value = (jsonValue is not null ? JsonConvert.DeserializeObject<T>(jsonValue) : default!)!;
                     }
                     catch (Exception ex)
                     {
                         // Log the exception or handle it as appropriate
                         // Example: Log.Error(ex, "Failed to deserialize JSON to Result<T>.Value.");
+                        value = default;
                         errorMessage = "Error: Could not deserialize value from JSON. " + ex.Message;
                     }
+
                     break;
                 default:
                     throw new InvalidOperationException($"Unknown property: {propertyName}");
             }
         }
 
-        if (errorMessage != null)
-            return value == null ? Result<T>.Failure(errorMessage, exitCode) : Result<T>.Success(value);
-        
-        throw new InvalidOperationException("Invalid Result<T> data.");
+        return !string.IsNullOrEmpty(errorMessage)
+            ? Result<T>.Failure(errorMessage, exitCode)
+            : Result<T>.Success((value ?? default(T))!);
     }
 }

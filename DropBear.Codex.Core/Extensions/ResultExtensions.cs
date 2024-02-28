@@ -67,11 +67,11 @@ public static class ResultExtensions
     }
 
     /// <summary>
-    ///     Deserializes a byte array back into a Result<T> instance using MessagePack.
+    ///     Deserializes a byte array back into a Result{T} instance using MessagePack.
     /// </summary>
     /// <typeparam name="T">The type of the value encapsulated by the result.</typeparam>
     /// <param name="serializedResult">The byte array representing the serialized result.</param>
-    /// <returns>The deserialized Result<T> instance.</returns>
+    /// <returns>The deserialized Result{T} instance.</returns>
     /// <exception cref="ArgumentNullException">Thrown if the serializedResult is null or empty.</exception>
     public static Result<T> DeserializeWithMessagePack<T>(byte[] serializedResult) where T : notnull
     {

@@ -3,4 +3,4 @@ using MessagePack;
 
 namespace DropBear.Codex.Core.ExitCodes.Standard;
 [MessagePackObject]
-public class SuccessExitCode() : ExitCode(0, "Operation completed successfully.");
+public class UnspecifiedExceptionExitCode() : ExitCode(-2, "An unspecified exception occurred.");

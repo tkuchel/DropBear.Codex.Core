@@ -25,7 +25,7 @@ public class Result
     /// <param name="exitCode">The exit code representing the outcome of the operation.</param>
     /// <param name="errorMessage">The error message associated with a failure.</param>
     [Obsolete("For MessagePack serialization only. Not intended for direct use in code.", false)]
-    public Result(ExitCode exitCode, string errorMessage)
+    public Result(ExitCode exitCode, string? errorMessage)
     {
         ExitCode = exitCode ?? throw new ArgumentNullException(nameof(exitCode));
         ErrorMessage = errorMessage ?? string.Empty;
@@ -63,7 +63,7 @@ public class Result
     public static Result Success()
     {
 #pragma warning disable CS0618 // Type or member is obsolete
-        return new Result(StandardExitCodes.Success,"");
+        return new Result(StandardExitCodes.Success, "");
 #pragma warning restore CS0618 // Type or member is obsolete
     }
 
@@ -74,7 +74,7 @@ public class Result
     /// <param name="exitCode">The exit code.</param>
     /// <returns>A failure result.</returns>
     /// <exception cref="ArgumentException">Thrown when the error message is null or whitespace.</exception>
-    public static Result Failure(string errorMessage, ExitCode? exitCode = null)
+    public static Result Failure(string? errorMessage, ExitCode? exitCode = null)
     {
         if (string.IsNullOrWhiteSpace(errorMessage))
             throw new ArgumentException("Error message cannot be null or whitespace.", nameof(errorMessage));
@@ -84,34 +84,27 @@ public class Result
 #pragma warning restore CS0618 // Type or member is obsolete
     }
 
-    public override bool Equals(object? obj)
-    {
-        return obj is Result other && Equals(other);
-    }
+    public override bool Equals(object? obj) => obj is Result other && Equals(other);
 
-    protected bool Equals(Result other)
-    {
-        return ExitCode == other.ExitCode && ErrorMessage == other.ErrorMessage;
-    }
+    // Adjusted visibility to private as recommended, if only used within this class
+    private bool Equals(Result other) =>
+        // Specify StringComparison for string comparisons for clarity and correctness
+        ExitCode == other.ExitCode && string.Equals(ErrorMessage, other.ErrorMessage, StringComparison.Ordinal);
 
     public override int GetHashCode()
     {
         unchecked // Overflow is fine, just wrap
         {
             var hash = (int)2166136261;
+            // Use StringComparer for generating hash code to align with specified StringComparison
             hash = (hash * 16777619) ^ ExitCode.GetHashCode();
-            hash = (hash * 16777619) ^ (ErrorMessage?.GetHashCode() ?? 0);
+            hash = (hash * 16777619) ^ StringComparer.Ordinal.GetHashCode(ErrorMessage);
             return hash;
         }
     }
 
-    public static bool operator ==(Result left, Result right)
-    {
-        return Equals(left, right);
-    }
 
-    public static bool operator !=(Result left, Result right)
-    {
-        return !Equals(left, right);
-    }
+    public static bool operator ==(Result left, Result right) => Equals(left, right);
+
+    public static bool operator !=(Result left, Result right) => !Equals(left, right);
 }

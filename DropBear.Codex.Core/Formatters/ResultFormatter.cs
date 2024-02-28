@@ -1,5 +1,4 @@
 ﻿using DropBear.Codex.Core.ExitCodes.Base;
-using DropBear.Codex.Core.ExitCodes.Standard;
 using DropBear.Codex.Core.ReturnTypes;
 using MessagePack;
 using MessagePack.Formatters;

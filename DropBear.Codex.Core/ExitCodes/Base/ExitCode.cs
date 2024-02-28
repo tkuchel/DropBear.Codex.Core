@@ -3,19 +3,13 @@
 namespace DropBear.Codex.Core.ExitCodes.Base;
 
 [MessagePackObject]
-public abstract class ExitCode
+public abstract class ExitCode(int code, string description)
 {
-    protected ExitCode(int code, string description)
-    {
-        Code = code;
-        Description = description ?? throw new ArgumentNullException(nameof(description));
-    }
-
     [Key(0)]
-    public int Code { get; }
-    
+    public int Code { get; } = code;
+
     [Key(1)]
-    public string Description { get; }
+    public string Description { get; } = description ?? throw new ArgumentNullException(nameof(description));
 
     public override bool Equals(object? obj)
     {

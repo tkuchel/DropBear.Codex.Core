@@ -49,7 +49,9 @@ public class ResultWithPayload<T> where T : notnull
     /// </summary>
     /// <param name="data">The data to be included in the result.</param>
     /// <returns>A successful result containing the payload.</returns>
+#pragma warning disable CA1000
     public static ResultWithPayload<T> Success(T data)
+#pragma warning restore CA1000
     {
         var payload = new Payload<T>(data);
         return new ResultWithPayload<T>(payload, true);
@@ -60,7 +62,9 @@ public class ResultWithPayload<T> where T : notnull
     /// </summary>
     /// <param name="errorMessage">The error message for the failure.</param>
     /// <returns>A failure result without a payload.</returns>
+#pragma warning disable CA1000
     public static ResultWithPayload<T> Failure(string errorMessage)
+#pragma warning restore CA1000
     {
         return new ResultWithPayload<T>(null, false, errorMessage);
     }
