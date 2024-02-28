@@ -11,7 +11,7 @@
         <Description>DropBear Codex is a .NET library that enhances operation result management and data integrity with `Result`, `ResultT`, and `ResultWithPayloadT` types, complete with checksum verification. Featuring custom MessagePack serialization for complex types, it ensures efficient, secure data handling, perfect for ASP.NET Core integration in both synchronous and asynchronous environments.</Description>
         <Copyright>2024 Terrence Kuchel</Copyright>
         <PackageProjectUrl>https://github.com/tkuchel/DropBear.Codex.Core</PackageProjectUrl>
-        <PackageLicenseUrl>https://www.gnu.org/licenses/lgpl-3.0.html#license-text</PackageLicenseUrl>
+        <PackageLicenseExpression>LGPL-3.0-or-later</PackageLicenseExpression>
         <RepositoryUrl>https://github.com/tkuchel/DropBear.Codex.Core</RepositoryUrl>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <RepositoryType>Git</RepositoryType>
