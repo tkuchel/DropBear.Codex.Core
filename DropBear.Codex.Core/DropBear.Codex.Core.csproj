@@ -4,7 +4,7 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <Version>2024.2.2</Version>
+        <Version>2024.3.0</Version>
         <Title>DropBear.Codex.Core</Title>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <Authors>Terrence Kuchel (DropBear)</Authors>
@@ -17,6 +17,10 @@
         <RepositoryType>Git</RepositoryType>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
+
+    <Target Name="BeforeBuild" Condition="'$(CI)' != 'true'">
+        <Exec Command="powershell.exe -NonInteractive -ExecutionPolicy Unrestricted -File &quot;T:\PowershellScripts\RiderPrebuildScript.ps1&quot; &quot;$(MSBuildProjectFullPath)&quot; &quot;T:\DropBear.Codex.TemporalHistory\version.json&quot;"/>
+    </Target>
 
 
     <ItemGroup>
