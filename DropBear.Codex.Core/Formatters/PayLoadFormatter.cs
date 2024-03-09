@@ -24,7 +24,7 @@ public class PayloadFormatter<T> : IMessagePackFormatter<Payload<T>> where T : n
     {
         // Expecting an array header of 5 elements to match the serialization order.
         var header = reader.ReadArrayHeader();
-        if (header != 5)
+        if (header is not 5)
             throw new InvalidOperationException("Expected array of length 5 for Payload<T> deserialization.");
 
         // Deserialize data, which is the first element.

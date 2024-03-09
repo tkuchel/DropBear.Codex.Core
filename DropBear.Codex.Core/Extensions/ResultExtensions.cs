@@ -41,14 +41,14 @@ public static class ResultExtensions
             throw new InvalidOperationException($"Type {type.Name} must be public and not nested.");
 
         var messagePackObjectAttribute = type.GetCustomAttribute<MessagePackObjectAttribute>();
-        if (messagePackObjectAttribute == null)
+        if (messagePackObjectAttribute is null)
             throw new InvalidOperationException($"Type {type.Name} must have a MessagePackObject attribute.");
 
         var properties = type.GetProperties();
         foreach (var property in properties)
         {
             var keyAttribute = property.GetCustomAttribute<KeyAttribute>();
-            if (keyAttribute == null)
+            if (keyAttribute is null)
                 throw new InvalidOperationException(
                     $"Property {property.Name} in type {type.Name} must have a Key attribute for MessagePack serialization.");
         }
@@ -75,7 +75,7 @@ public static class ResultExtensions
     /// <exception cref="ArgumentNullException">Thrown if the serializedResult is null or empty.</exception>
     public static Result<T> DeserializeWithMessagePack<T>(byte[] serializedResult) where T : notnull
     {
-        if (serializedResult == null || serializedResult.Length == 0)
+        if (serializedResult is null || serializedResult.Length is 0)
             throw new ArgumentNullException(nameof(serializedResult), "Serialized result cannot be null or empty.");
 
         return MessagePackSerializer.Deserialize<Result<T>>(serializedResult, Options);
@@ -127,7 +127,7 @@ public static class ResultExtensions
     /// <exception cref="MessagePackSerializationException">Thrown if serialization fails.</exception>
     public static byte[] SerializeWithMessagePackAndCompress<T>(this Result<T> result) where T : notnull
     {
-        if (result == null) throw new ArgumentNullException(nameof(result), "Result cannot be null.");
+        if (result is null) throw new ArgumentNullException(nameof(result), "Result cannot be null.");
 
         var compressionOptions = Options.WithCompression(MessagePackCompression.Lz4BlockArray);
         return MessagePackSerializer.Serialize(result, compressionOptions);
@@ -170,7 +170,7 @@ public static class ResultExtensions
     /// <exception cref="MessagePackSerializationException">Thrown if deserialization fails.</exception>
     public static Result<T> DeserializeAndDecompressWithMessagePack<T>(byte[] compressedData) where T : notnull
     {
-        if (compressedData == null || compressedData.Length == 0)
+        if (compressedData is null || compressedData.Length is 0)
             throw new ArgumentNullException(nameof(compressedData), "Compressed data cannot be null or empty.");
 
         var compressionOptions = Options.WithCompression(MessagePackCompression.Lz4BlockArray);
@@ -187,7 +187,7 @@ public static class ResultExtensions
     /// <exception cref="ArgumentNullException">Thrown if the result is null.</exception>
     public static byte[] SerializeWithChecksum<T>(this ResultWithPayload<T> result) where T : notnull
     {
-        if (result == null) throw new ArgumentNullException(nameof(result), "Result cannot be null.");
+        if (result is null) throw new ArgumentNullException(nameof(result), "Result cannot be null.");
         return MessagePackSerializer.Serialize(result, Options);
     }
 
@@ -202,12 +202,12 @@ public static class ResultExtensions
     /// <exception cref="InvalidOperationException">Thrown if data integrity check fails.</exception>
     public static ResultWithPayload<T> DeserializeWithChecksum<T>(byte[] serializedData) where T : notnull
     {
-        if (serializedData == null || serializedData.Length == 0)
+        if (serializedData is null || serializedData.Length is 0)
             throw new ArgumentNullException(nameof(serializedData), "Serialized data cannot be null or empty.");
 
         var result = MessagePackSerializer.Deserialize<ResultWithPayload<T>>(serializedData, Options);
 
-        if (result.Payload != null && !result.Payload.VerifyIntegrity())
+        if (result.Payload is not null && !result.Payload.VerifyIntegrity())
             throw new InvalidOperationException("Data integrity check failed. The data may have been tampered with.");
 
         return result;
@@ -264,7 +264,7 @@ public static class ResultExtensions
     {
         return result.IsSuccess switch
         {
-            true when result.Payload != null => new OkObjectResult(result.Payload),
+            true when result.Payload is not null => new OkObjectResult(result.Payload),
             true => new NoContentResult(),
             _ => new ObjectResult(result.ErrorMessage) { StatusCode = StatusCodes.Status400BadRequest }
         };

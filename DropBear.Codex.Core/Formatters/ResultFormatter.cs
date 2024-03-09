@@ -43,7 +43,7 @@ public class ResultFormatter : IMessagePackFormatter<Result>
             }
         }
 
-        if (errorMessage == null) throw new InvalidOperationException("Invalid Result data.");
+        if (errorMessage is null) throw new InvalidOperationException("Invalid Result data.");
         if (exitCode == null!) throw new InvalidOperationException("Invalid Result data.");
 #pragma warning disable CS0618 // Type or member is obsolete
         return new Result(exitCode, errorMessage);
