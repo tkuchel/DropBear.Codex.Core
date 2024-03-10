@@ -49,6 +49,12 @@ public class CustomResolver : IFormatterResolver
                     var formatterType = typeof(PayloadFormatter<>).MakeGenericType(typeof(T).GetGenericArguments()[0]);
                     return (IMessagePackFormatter<T>)Activator.CreateInstance(formatterType)!;
                 }
+                
+                if (typeof(T).GetGenericTypeDefinition() == typeof(Result<,>))
+                {
+                    var formatterType = typeof(ResultT1T2Formatter<,>).MakeGenericType(typeof(T).GetGenericArguments());
+                    return (IMessagePackFormatter<T>)Activator.CreateInstance(formatterType)!;
+                }
             }
 
             // Fallback to standard resolver if no custom or dynamic formatter is found

@@ -54,6 +54,73 @@ public static class ResultExtensions
         }
     }
 
+    /// <summary>
+    ///     Serializes and compresses a <see cref="Result{T1, T2}" /> using MessagePack with LZ4 block array compression.
+    /// </summary>
+    /// <typeparam name="T1">The type of the success value encapsulated by the result.</typeparam>
+    /// <typeparam name="T2">The type of the failure value encapsulated by the result.</typeparam>
+    /// <param name="result">The result to serialize and compress.</param>
+    /// <returns>A byte array containing the serialized and compressed result.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if the result is null.</exception>
+    public static byte[] SerializeWithMessagePackAndCompress<T1, T2>(this Result<T1, T2> result)
+    {
+        if (result == null) throw new ArgumentNullException(nameof(result), "Result cannot be null.");
+
+        var compressionOptions =
+            MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray);
+        return MessagePackSerializer.Serialize(result, compressionOptions);
+    }
+
+    /// <summary>
+    ///     Deserializes and decompresses a byte array to a <see cref="Result{T1, T2}" /> using MessagePack with LZ4 block
+    ///     array compression.
+    /// </summary>
+    /// <typeparam name="T1">The type of the success value encapsulated by the deserialized result.</typeparam>
+    /// <typeparam name="T2">The type of the failure value encapsulated by the deserialized result.</typeparam>
+    /// <param name="compressedData">The byte array containing the serialized and compressed result.</param>
+    /// <returns>A <see cref="Result{T1, T2}" /> deserialized from the compressed data.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if compressedData is null or empty.</exception>
+    public static Result<T1, T2> DeserializeAndDecompressWithMessagePack<T1, T2>(byte[] compressedData)
+    {
+        if (compressedData == null || compressedData.Length == 0)
+            throw new ArgumentNullException(nameof(compressedData), "Compressed data cannot be null or empty.");
+
+        var compressionOptions =
+            MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray);
+        return MessagePackSerializer.Deserialize<Result<T1, T2>>(compressedData, compressionOptions);
+    }
+
+    /// <summary>
+    ///     Serializes a <see cref="Result{T1, T2}" /> to a byte array using MessagePack without compression.
+    /// </summary>
+    /// <typeparam name="T1">The type of the success value encapsulated by the result.</typeparam>
+    /// <typeparam name="T2">The type of the failure value encapsulated by the result.</typeparam>
+    /// <param name="result">The result to serialize.</param>
+    /// <returns>A byte array containing the serialized result.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if the result is null.</exception>
+    public static byte[] SerializeWithMessagePack<T1, T2>(this Result<T1, T2> result)
+    {
+        if (result == null) throw new ArgumentNullException(nameof(result), "Result cannot be null.");
+        return MessagePackSerializer.Serialize(result, MessagePackSerializerOptions.Standard);
+    }
+
+    /// <summary>
+    ///     Deserializes a byte array back into a <see cref="Result{T1, T2}" /> instance using MessagePack without
+    ///     decompression.
+    /// </summary>
+    /// <typeparam name="T1">The type of the success value encapsulated by the result.</typeparam>
+    /// <typeparam name="T2">The type of the failure value encapsulated by the result.</typeparam>
+    /// <param name="serializedResult">The byte array representing the serialized result.</param>
+    /// <returns>The deserialized <see cref="Result{T1, T2}" /> instance.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if the serializedResult is null or empty.</exception>
+    public static Result<T1, T2> DeserializeWithMessagePack<T1, T2>(byte[] serializedResult)
+    {
+        if (serializedResult == null || serializedResult.Length == 0)
+            throw new ArgumentNullException(nameof(serializedResult), "Serialized result cannot be null or empty.");
+
+        return MessagePackSerializer.Deserialize<Result<T1, T2>>(serializedResult,
+            MessagePackSerializerOptions.Standard);
+    }
 
     /// <summary>
     ///     Serializes the result to a byte array using MessagePack.
@@ -61,10 +128,8 @@ public static class ResultExtensions
     /// <typeparam name="T">The type of the value encapsulated by the result.</typeparam>
     /// <param name="result">The result to serialize.</param>
     /// <returns>A byte array representing the serialized result.</returns>
-    public static byte[] SerializeWithMessagePack<T>(this Result<T> result) where T : notnull
-    {
-        return MessagePackSerializer.Serialize(result, Options);
-    }
+    public static byte[] SerializeWithMessagePack<T>(this Result<T> result) where T : notnull =>
+        MessagePackSerializer.Serialize(result, Options);
 
     /// <summary>
     ///     Deserializes a byte array back into a Result{T} instance using MessagePack.
@@ -87,10 +152,7 @@ public static class ResultExtensions
     /// </summary>
     /// <param name="result">The <see cref="Result" /> to wrap in a <see cref="Task{TResult}" />.</param>
     /// <returns>A <see cref="Task{TResult}" /> containing the provided <see cref="Result" />.</returns>
-    public static Task<Result> ToTask(this Result result)
-    {
-        return Task.FromResult(result);
-    }
+    public static Task<Result> ToTask(this Result result) => Task.FromResult(result);
 
     /// <summary>
     ///     Wraps a <see cref="Result{T}" /> in a <see cref="Task{TResult}" /> to allow it to be returned from an asynchronous
@@ -99,10 +161,7 @@ public static class ResultExtensions
     /// <typeparam name="T">The type of the value encapsulated by the <see cref="Result{T}" />.</typeparam>
     /// <param name="result">The <see cref="Result{T}" /> to wrap in a <see cref="Task{TResult}" />.</param>
     /// <returns>A <see cref="Task{TResult}" /> containing the provided <see cref="Result{T}" />.</returns>
-    public static Task<Result<T>> ToTask<T>(this Result<T> result) where T : notnull
-    {
-        return Task.FromResult(result);
-    }
+    public static Task<Result<T>> ToTask<T>(this Result<T> result) where T : notnull => Task.FromResult(result);
 
     /// <summary>
     ///     Wraps a <see cref="ResultWithPayload{T}" /> in a <see cref="Task{TResult}" /> to allow it to be returned from an
@@ -111,10 +170,8 @@ public static class ResultExtensions
     /// <typeparam name="T">The type of the value encapsulated by the <see cref="ResultWithPayload{T}" />.</typeparam>
     /// <param name="result">The <see cref="ResultWithPayload{T}" /> to wrap in a <see cref="Task{TResult}" />.</param>
     /// <returns>A <see cref="Task{TResult}" /> containing the provided <see cref="ResultWithPayload{T}" />.</returns>
-    public static Task<ResultWithPayload<T>> ToTask<T>(this ResultWithPayload<T> result) where T : notnull
-    {
-        return Task.FromResult(result);
-    }
+    public static Task<ResultWithPayload<T>> ToTask<T>(this ResultWithPayload<T> result) where T : notnull =>
+        Task.FromResult(result);
 
 
     /// <summary>
@@ -260,13 +317,38 @@ public static class ResultExtensions
     ///     An <see cref="IActionResult" /> that represents the HTTP response for the given result,
     ///     including the payload if the operation was successful.
     /// </returns>
-    public static IActionResult ToActionResult<T>(this ResultWithPayload<T> result) where T : notnull
-    {
-        return result.IsSuccess switch
+    public static IActionResult ToActionResult<T>(this ResultWithPayload<T> result) where T : notnull =>
+        result.IsSuccess switch
         {
             true when result.Payload != null => new OkObjectResult(result.Payload),
             true => new NoContentResult(),
             _ => new ObjectResult(result.ErrorMessage) { StatusCode = StatusCodes.Status400BadRequest }
         };
+
+    /// <summary>
+    ///     Converts a <see cref="Result{T1, T2}" /> to a <see cref="Task{Result{T1, T2}}" /> for use with asynchronous
+    ///     operations.
+    /// </summary>
+    /// <typeparam name="T1">The type of the success value.</typeparam>
+    /// <typeparam name="T2">The type of the failure value.</typeparam>
+    /// <param name="result">The result to convert.</param>
+    /// <returns>A task wrapping the provided result.</returns>
+    public static Task<Result<T1, T2>> ToTask<T1, T2>(this Result<T1, T2> result) => Task.FromResult(result);
+
+
+    /// <summary>
+    ///     Converts a <see cref="Result{T1, T2}" /> to an <see cref="IActionResult" /> suitable for returning from an ASP.NET
+    ///     Core controller.
+    /// </summary>
+    /// <typeparam name="T1">The type of the success value.</typeparam>
+    /// <typeparam name="T2">The type of the failure value.</typeparam>
+    /// <param name="result">The result to convert.</param>
+    /// <returns>An <see cref="IActionResult" /> representing the HTTP response.</returns>
+    public static IActionResult ToActionResult<T1, T2>(this Result<T1, T2> result)
+    {
+        if (result.IsSuccess)
+            return new OkObjectResult(result.SuccessValue);
+        // Adjust the failure handling as needed (BadRequest, NotFound, etc.)
+        return new BadRequestObjectResult(result.FailureValue);
     }
 }
