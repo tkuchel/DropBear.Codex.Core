@@ -29,28 +29,36 @@ public class CustomResolver : IFormatterResolver
             // Initialize formatters based on type
             if (typeof(T) == typeof(ExitCode)) return (IMessagePackFormatter<T>)new ExitCodeFormatter();
 
-            if (!typeof(T).IsGenericType) return StandardResolver.Instance.GetFormatter<T>();
-            if (typeof(T).GetGenericTypeDefinition() == typeof(Result<>))
+            if (typeof(T).IsGenericType)
             {
-                var formatterType = typeof(ResultFormatter<>).MakeGenericType(typeof(T).GetGenericArguments()[0]);
-                return (IMessagePackFormatter<T>)Activator.CreateInstance(formatterType)!;
-            }
+                if (typeof(T).GetGenericTypeDefinition() == typeof(Result<>))
+                {
+                    var formatterType = typeof(ResultFormatter<>).MakeGenericType(typeof(T).GetGenericArguments()[0]);
+                    return (IMessagePackFormatter<T>)Activator.CreateInstance(formatterType)!;
+                }
 
-            if (typeof(T).GetGenericTypeDefinition() == typeof(ResultWithPayload<>))
-            {
-                var formatterType =
-                    typeof(ResultWithPayloadFormatter<>).MakeGenericType(typeof(T).GetGenericArguments()[0]);
-                return (IMessagePackFormatter<T>)Activator.CreateInstance(formatterType)!;
-            }
+                if (typeof(T).GetGenericTypeDefinition() == typeof(ResultWithPayload<>))
+                {
+                    var formatterType =
+                        typeof(ResultWithPayloadFormatter<>).MakeGenericType(typeof(T).GetGenericArguments()[0]);
+                    return (IMessagePackFormatter<T>)Activator.CreateInstance(formatterType)!;
+                }
 
-            if (typeof(T).GetGenericTypeDefinition() != typeof(Payload<>))
-                return StandardResolver.Instance.GetFormatter<T>();
-            {
-                var formatterType = typeof(PayloadFormatter<>).MakeGenericType(typeof(T).GetGenericArguments()[0]);
-                return (IMessagePackFormatter<T>)Activator.CreateInstance(formatterType)!;
+                if (typeof(T).GetGenericTypeDefinition() == typeof(Payload<>))
+                {
+                    var formatterType = typeof(PayloadFormatter<>).MakeGenericType(typeof(T).GetGenericArguments()[0]);
+                    return (IMessagePackFormatter<T>)Activator.CreateInstance(formatterType)!;
+                }
+                
+                if (typeof(T).GetGenericTypeDefinition() == typeof(Result<,>))
+                {
+                    var formatterType = typeof(ResultT1T2Formatter<,>).MakeGenericType(typeof(T).GetGenericArguments());
+                    return (IMessagePackFormatter<T>)Activator.CreateInstance(formatterType)!;
+                }
             }
 
             // Fallback to standard resolver if no custom or dynamic formatter is found
+            return StandardResolver.Instance.GetFormatter<T>();
         }
     }
 }
