@@ -17,7 +17,7 @@ public class ResultT1T2Formatter<T1, T2> : IMessagePackFormatter<Result<T1, T2>>
 
         // Serialize the ExitCode
         writer.Write(nameof(Result<T1, T2>.ExitCode));
-        options.Resolver.GetFormatterWithVerify<ExitCode>().Serialize(ref writer, value.ExitCode, options);
+        options.Resolver.GetFormatterWithVerify<ExitCode>().Serialize(ref writer, value.ExitCode ?? StandardExitCodes.UnspecifiedError, options);
 
         // Serialize the IsSuccess flag
         writer.Write(nameof(Result<T1, T2>.IsSuccess));
@@ -38,14 +38,16 @@ public class ResultT1T2Formatter<T1, T2> : IMessagePackFormatter<Result<T1, T2>>
         }
     }
 
+#pragma warning disable CS8613 // Nullability of reference types in return type doesn't match implicitly implemented member.
     public Result<T1?, T2?> Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+#pragma warning restore CS8613 // Nullability of reference types in return type doesn't match implicitly implemented member.
     {
         var length = reader.ReadMapHeader();
         if (length is not 3)
             throw new MessagePackSerializationException("Invalid Result<T1, T2> format.");
 
         // Initialize default values
-        var exitCode = StandardExitCodes.Success; // Or another default ExitCode
+        var exitCode = StandardExitCodes.Success; // Default exit code
         T1? successValue = default;
         T2? failureValue = default;
         var isSuccess = false;
@@ -70,6 +72,6 @@ public class ResultT1T2Formatter<T1, T2> : IMessagePackFormatter<Result<T1, T2>>
             }
         }
 
-        return isSuccess ? new Result<T1?, T2?>(successValue) : new Result<T1?, T2?>(failureValue);
+        return isSuccess ? new Result<T1?, T2?>(successValue) : new Result<T1?, T2?>(failureValue,exitCode);
     }
 }

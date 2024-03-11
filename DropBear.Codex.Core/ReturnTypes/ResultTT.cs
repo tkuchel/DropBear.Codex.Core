@@ -40,17 +40,19 @@ public class Result<T1, T2>
     ///     Initializes a new instance of the Result class with a failure value.
     /// </summary>
     /// <param name="failureValue">The failure value of type T2.</param>
-    public Result(T2 failureValue)
+    /// <param name="exitCode">The exit code for the failure</param>
+    public Result(T2 failureValue, ExitCode? exitCode = null)
     {
         _failureValue = failureValue;
-        ExitCode = StandardExitCodes.UnspecifiedError;
+        ExitCode = exitCode == null ? StandardExitCodes.UnspecifiedError : exitCode;
     }
+
 
     /// <summary>
     ///     Gets the exit code representing the outcome of the operation.
     /// </summary>
     [Key(0)]
-    public ExitCode ExitCode { get; } = null!;
+    public ExitCode? ExitCode { get; } = null!;
 
     /// <summary>
     ///     Indicates whether the operation was successful.

@@ -32,7 +32,7 @@ public class Result<T> where T : notnull
     /// <param name="errorMessage">The error message associated with a failure.</param>
     [Obsolete("For MessagePack serialization only. Not intended for direct use in code.")]
     // ReSharper disable once MemberCanBePrivate.Global
-    public Result(ExitCode exitCode, T value, string? errorMessage)
+    public Result(ExitCode? exitCode, T value, string? errorMessage)
     {
         ExitCode = exitCode ?? throw new ArgumentNullException(nameof(exitCode));
         _value = value;
