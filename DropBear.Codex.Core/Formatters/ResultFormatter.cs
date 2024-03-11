@@ -24,7 +24,7 @@ public class ResultFormatter : IMessagePackFormatter<Result>
         if (reader.TryReadNil()) return null!;
 
         var count = reader.ReadMapHeader();
-        ExitCode exitCode = null!;
+        ExitCode? exitCode = null!;
         var errorMessage = string.Empty;
 
         for (var i = 0; i < count; i++)

@@ -25,7 +25,7 @@ public class Result
     /// <param name="exitCode">The exit code representing the outcome of the operation.</param>
     /// <param name="errorMessage">The error message associated with a failure.</param>
     [Obsolete("For MessagePack serialization only. Not intended for direct use in code.", false)]
-    public Result(ExitCode exitCode, string? errorMessage)
+    public Result(ExitCode? exitCode, string? errorMessage)
     {
         ExitCode = exitCode ?? throw new ArgumentNullException(nameof(exitCode));
         ErrorMessage = errorMessage ?? string.Empty;

@@ -22,7 +22,7 @@ public abstract class ExitCode(int code, string description)
     }
 
     
-    public static bool operator ==(ExitCode left, ExitCode right)
+    public static bool operator ==(ExitCode? left, ExitCode? right)
     {
         return Equals(left, right);
     }
