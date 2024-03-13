@@ -86,7 +86,6 @@ public class Result
 
     public override bool Equals(object? obj) => obj is Result other && Equals(other);
 
-    // Adjusted visibility to private as recommended, if only used within this class
     private bool Equals(Result other) =>
         // Specify StringComparison for string comparisons for clarity and correctness
         ExitCode == other.ExitCode && string.Equals(ErrorMessage, other.ErrorMessage, StringComparison.Ordinal);

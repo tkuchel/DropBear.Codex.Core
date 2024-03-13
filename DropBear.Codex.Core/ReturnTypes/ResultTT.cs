@@ -52,7 +52,7 @@ public class Result<T1, T2>
     ///     Gets the exit code representing the outcome of the operation.
     /// </summary>
     [Key(0)]
-    public ExitCode? ExitCode { get; } = null!;
+    public ExitCode? ExitCode { get; }
 
     /// <summary>
     ///     Indicates whether the operation was successful.
@@ -67,33 +67,22 @@ public class Result<T1, T2>
     // ReSharper disable once MemberCanBePrivate.Global
     public bool IsFailure => !IsSuccess;
 
+    [IgnoreMember] private bool HasSuccessValue => IsSuccess && _successValue is not null;
+
+    // Indicates if the failure value is available
+    [IgnoreMember] private bool HasFailureValue => IsFailure && _failureValue is not null;
+
     /// <summary>
     ///     Gets the success value. Throws InvalidOperationException if the result is a failure.
     /// </summary>
     [Key(1)]
-    public T1? SuccessValue
-    {
-        get
-        {
-            if (!IsSuccess)
-                throw new InvalidOperationException("Cannot access success value on a failure result.");
-            return _successValue;
-        }
-    }
+    public T1? SuccessValue => HasSuccessValue ? _successValue : default;
 
     /// <summary>
     ///     Gets the failure value. Throws InvalidOperationException if the result is a success.
     /// </summary>
     [Key(2)]
-    public T2? FailureValue
-    {
-        get
-        {
-            if (!IsFailure)
-                throw new InvalidOperationException("Cannot access failure value on a success result.");
-            return _failureValue;
-        }
-    }
+    public T2? FailureValue => HasFailureValue ? _failureValue : default;
 
     /// <summary>
     ///     Executes a specified action if the result is a success.
@@ -180,4 +169,16 @@ public class Result<T1, T2>
                 : await failureFunc(_failureValue).ConfigureAwait(false);
         return default;
     }
+
+    // Implicit operator for converting to Result<T1, T2> from T1
+    public static implicit operator Result<T1, T2>(T1 successValue) => new(successValue);
+
+    // Implicit operator for converting to Result<T1, T2> from T2
+    public static implicit operator Result<T1, T2>(T2 failureValue) =>
+        new(failureValue, StandardExitCodes.UnspecifiedError); // Modify the exit code as needed
+
+    // Optional: Implicit operators for converting from Result<T1, T2> to T1 or T2.
+    public static implicit operator T1?(Result<T1?, T2> result) => result.SuccessValue ?? default;
+
+    public static implicit operator T2?(Result<T1, T2?> result) => result.FailureValue ?? default;
 }

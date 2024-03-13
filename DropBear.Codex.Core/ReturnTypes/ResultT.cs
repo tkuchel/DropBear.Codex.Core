@@ -130,7 +130,7 @@ public class Result<T> where T : notnull
     /// <returns>The result of executing either the onSuccess or onFailure function.</returns>
     public TResult Match<TResult>(Func<T, TResult> onSuccess, Func<string, TResult> onFailure)
     {
-        if (_value != null) return IsSuccess ? onSuccess(_value) : onFailure(ErrorMessage);
+        if (_value is not null) return IsSuccess ? onSuccess(_value) : onFailure(ErrorMessage);
         throw new InvalidOperationException("Cannot match a failed result without a value.");
     }
 
@@ -141,7 +141,7 @@ public class Result<T> where T : notnull
     /// <returns>A Task representing the asynchronous operation.</returns>
     public async Task OnSuccessAsync(Func<T, Task> action)
     {
-        if (IsSuccess && _value != null) await action(_value).ConfigureAwait(false);
+        if (IsSuccess && _value is not null) await action(_value).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -167,10 +167,16 @@ public class Result<T> where T : notnull
     public async Task<Result<TResult>> MatchAsync<TResult>(Func<T, Task<TResult>> onSuccess,
         Func<string, Task<Result<TResult>>> onFailure) where TResult : notnull
     {
-        if (_value != null)
+        if (_value is not null)
             return IsSuccess
                 ? Result<TResult>.Success(await onSuccess(_value).ConfigureAwait(false))
                 : await onFailure(ErrorMessage).ConfigureAwait(false);
         throw new InvalidOperationException("Cannot match a failed result without a value.");
     }
+
+    // Implicit operator to convert from T (success value) to Result<T>
+    public static implicit operator Result<T>(T value) => Success(value);
+
+    // Implicit operator to convert from string (error message) to Result<T>
+    public static implicit operator Result<T>(string errorMessage) => Failure(errorMessage);
 }
