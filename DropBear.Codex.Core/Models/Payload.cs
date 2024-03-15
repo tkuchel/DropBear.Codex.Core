@@ -10,10 +10,11 @@ namespace DropBear.Codex.Core.Models;
 [MessagePackObject]
 public class Payload<T>
 {
+    // Static dictionary for caching integrity check results.
+    private readonly Dictionary<string, bool> _integrityCheckCache = new(StringComparer.OrdinalIgnoreCase);
     [Key(1)] private readonly byte[] _checksum;
 
     [Key(3)] private readonly byte[]? _exportedPublicKey;
-    private readonly Dictionary<string, bool> _integrityCheckCache = new(StringComparer.OrdinalIgnoreCase);
 
     [Key(2)] private readonly byte[]? _signature;
 
@@ -24,7 +25,6 @@ public class Payload<T>
         Data = data;
         _checksum = ComputeChecksum(data);
         _signature = SignChecksum(_checksum);
-        // Ensure CryptoKey is accessed to force initialization before exporting the public key.
         _exportedPublicKey = CryptoKey.ExportRSAPublicKey();
     }
 
@@ -42,9 +42,9 @@ public class Payload<T>
     {
         get
         {
-            if (_cryptoKey is not null) return _cryptoKey;
-            _cryptoKey = RSA.Create(); // Lazy initialization
-            if (_exportedPublicKey is not null) _cryptoKey.ImportRSAPublicKey(_exportedPublicKey, out _);
+            _cryptoKey ??= RSA.Create(); // Lazy initialization using null-coalescing assignment operator
+            if (_exportedPublicKey is not null && _cryptoKey.KeyExchangeAlgorithm is null)
+                _cryptoKey.ImportRSAPublicKey(_exportedPublicKey, out _);
             return _cryptoKey;
         }
     }
@@ -63,9 +63,13 @@ public class Payload<T>
     {
         var checksumString = Convert.ToBase64String(_checksum);
 
+        // Check cache first if enabled
         if (useCache && _integrityCheckCache.TryGetValue(checksumString, out var cachedResult)) return cachedResult;
 
-        var result = VerifySignature(_checksum);
+        // Perform signature verification and cache the result
+        var result = _signature is not null &&
+                     CryptoKey.VerifyData(_checksum, _signature, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+
         if (useCache) _integrityCheckCache[checksumString] = result;
 
         return result;
@@ -79,8 +83,4 @@ public class Payload<T>
 
     private byte[]? SignChecksum(byte[] checksum) =>
         CryptoKey.SignData(checksum, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-
-    private bool VerifySignature(byte[] checksum) => _signature is not null &&
-                                                     CryptoKey.VerifyData(checksum, _signature,
-                                                         HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
 }
