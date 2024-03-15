@@ -1,86 +1,72 @@
-﻿using System.Security.Cryptography;
+﻿using Blake2Fast;
 using MessagePack;
+using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Crypto.Signers;
 
 namespace DropBear.Codex.Core.Models;
 
-/// <summary>
-///     Represents the payload containing the data and its cryptographic verification elements.
-/// </summary>
-/// <typeparam name="T">The type of the data.</typeparam>
 [MessagePackObject]
 public class Payload<T>
 {
-    // Static dictionary for caching integrity check results.
-    private readonly Dictionary<string, bool> _integrityCheckCache = new(StringComparer.OrdinalIgnoreCase);
-    [Key(1)] private readonly byte[] _checksum;
-
-    [Key(3)] private readonly byte[]? _exportedPublicKey;
-
-    [Key(2)] private readonly byte[]? _signature;
-
-    [IgnoreMember] private RSA? _cryptoKey;
-
-    public Payload(T data)
-    {
-        Data = data;
-        _checksum = ComputeChecksum(data);
-        _signature = SignChecksum(_checksum);
-        _exportedPublicKey = CryptoKey.ExportRSAPublicKey();
-    }
-
-    [SerializationConstructor]
-    public Payload(T data, byte[] checksum, byte[]? signature, byte[]? exportedPublicKey, long timestamp)
+    [Key(1)] internal readonly byte[] _checksum;
+    [Key(3)] internal readonly byte[] _publicKey;
+    [Key(2)] internal readonly byte[] _signature;
+    [Key(7)] private readonly byte[] _storedPublicKey;
+    
+    // Constructor for message pack deserialization
+    public Payload(T data, byte[] checksum, byte[] signature, byte[] publicKey, long timestamp, string? dataType, Guid payloadId)
     {
         Data = data;
         _checksum = checksum;
         _signature = signature;
-        _exportedPublicKey = exportedPublicKey;
+        _publicKey = publicKey;
+        _storedPublicKey = publicKey; // Assuming storedPublicKey is always the same as publicKey upon deserialization
         Timestamp = timestamp;
+        DataType = dataType;
+        PayloadId = payloadId;
     }
 
-    private RSA CryptoKey
+    public Payload(T data, Ed25519PrivateKeyParameters privateKey)
     {
-        get
-        {
-            _cryptoKey ??= RSA.Create(); // Lazy initialization using null-coalescing assignment operator
-            if (_exportedPublicKey is not null && _cryptoKey.KeyExchangeAlgorithm is null)
-                _cryptoKey.ImportRSAPublicKey(_exportedPublicKey, out _);
-            return _cryptoKey;
-        }
+        Data = data;
+        _checksum = ComputeChecksum(data);
+        _signature = SignData(_checksum, privateKey);
+        _publicKey = privateKey.GeneratePublicKey().GetEncoded();
+        _storedPublicKey = _publicKey; // Store the public key
+        Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        DataType = typeof(T).Name;
+        PayloadId = Guid.NewGuid();
     }
 
-    [Key(0)] public T Data { get; }
+    [field: Key(0)] public T Data { get; }
 
-    [field: Key(4)] public long Timestamp { get; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+    [field: Key(4)] public long Timestamp { get; }
 
-    public byte[] GetChecksum() => _checksum;
+    [field: Key(5)] public string? DataType { get; }
 
-    public byte[]? GetSignature() => _signature;
+    [field: Key(6)] public Guid PayloadId { get; }
 
-    public byte[]? GetExportedPublicKey() => _exportedPublicKey;
-
-    public bool VerifyIntegrity(bool useCache = true)
+    public bool ValidateIntegrity()
     {
-        var checksumString = Convert.ToBase64String(_checksum);
-
-        // Check cache first if enabled
-        if (useCache && _integrityCheckCache.TryGetValue(checksumString, out var cachedResult)) return cachedResult;
-
-        // Perform signature verification and cache the result
-        var result = _signature is not null &&
-                     CryptoKey.VerifyData(_checksum, _signature, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-
-        if (useCache) _integrityCheckCache[checksumString] = result;
-
-        return result;
+        var publicKeyParam = new Ed25519PublicKeyParameters(_storedPublicKey, 0);
+        var verifier = new Ed25519Signer();
+        verifier.Init(forSigning: false, publicKeyParam);
+        verifier.BlockUpdate(_checksum, 0, _checksum.Length);
+        return verifier.VerifySignature(_signature);
     }
 
     private static byte[] ComputeChecksum(T data)
     {
-        var serialized = MessagePackSerializer.Serialize(data);
-        return SHA256.HashData(serialized);
+        var serializedData = MessagePackSerializer.Serialize(data);
+        return Blake2b.ComputeHash(serializedData);
     }
 
-    private byte[]? SignChecksum(byte[] checksum) =>
-        CryptoKey.SignData(checksum, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+    private static byte[] SignData(byte[] data, ICipherParameters privateKey)
+    {
+        var signer = new Ed25519Signer();
+        signer.Init(forSigning: true, privateKey);
+        signer.BlockUpdate(data, 0, data.Length);
+        return signer.GenerateSignature();
+    }
 }
