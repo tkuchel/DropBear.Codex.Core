@@ -58,8 +58,8 @@ public class ResultWithPayloadFormatter<T> : IMessagePackFormatter<ResultWithPay
             }
         }
 
-        if (isSuccess && payload is not null) return ResultWithPayload<T>.Success(payload.Data);
+        if (isSuccess && payload is not null) return ResultWithPayload.Success(payload.Data);
 
-        return ResultWithPayload<T>.Failure(errorMessage ?? string.Empty);
+        return ResultWithPayload.Failure<T>(errorMessage ?? string.Empty);
     }
 }

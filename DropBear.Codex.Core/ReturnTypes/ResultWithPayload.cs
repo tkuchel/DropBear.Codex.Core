@@ -3,22 +3,26 @@ using MessagePack;
 
 namespace DropBear.Codex.Core.ReturnTypes;
 
+public static class ResultWithPayload
+{
+    public static ResultWithPayload<T> Success<T>(T data) where T : notnull
+    {
+        var payload = new Payload<T>(data);
+        return new ResultWithPayload<T>(payload, isSuccess: true);
+    }
+
+    public static ResultWithPayload<T> Failure<T>(string errorMessage) where T : notnull =>
+        new(payload: null, isSuccess: false, errorMessage);
+}
+
 /// <summary>
-///     Represents a specialized result type that incorporates a payload, including data, checksum/signature, and optional
-///     metadata,
-///     for operations that require data integrity verification alongside the operation result.
+///     Represents a result that may contain a payload or an error message.
 /// </summary>
-/// <typeparam name="T">The type of data encapsulated as a payload.</typeparam>
+/// <typeparam name="T">The type of the payload.</typeparam>
 [MessagePackObject]
 public class ResultWithPayload<T> where T : notnull
 {
-    /// <summary>
-    ///     Initializes a new instance of the ResultWithPayload class.
-    /// </summary>
-    /// <param name="payload">The payload containing the operation's data.</param>
-    /// <param name="isSuccess">Indicates whether the operation was successful.</param>
-    /// <param name="errorMessage">The error message associated with a failed operation.</param>
-    private ResultWithPayload(Payload<T>? payload, bool isSuccess, string errorMessage = "")
+    internal ResultWithPayload(Payload<T>? payload, bool isSuccess, string errorMessage = "")
     {
         Payload = payload;
         IsSuccess = isSuccess;
@@ -26,54 +30,23 @@ public class ResultWithPayload<T> where T : notnull
     }
 
     /// <summary>
-    ///     Gets the payload containing the operation's data. Can be null for failed operations.
+    ///     Gets the payload of the result.
     /// </summary>
     [Key(1)]
     public Payload<T>? Payload { get; }
 
     /// <summary>
-    ///     Gets a value indicating whether the operation was successful.
+    ///     Gets a value indicating whether the result was successful.
     /// </summary>
     [IgnoreMember]
     public bool IsSuccess { get; private set; }
 
     /// <summary>
-    ///     Gets the error message associated with a failed operation.
+    ///     Gets the error message if the result was not successful.
     /// </summary>
     [Key(0)]
     public string ErrorMessage { get; private set; }
 
-    /// <summary>
-    ///     Creates a successful result with the specified data, encapsulating it within a Payload that includes a checksum.
-    /// </summary>
-    /// <param name="data">The data to be included in the result.</param>
-    /// <returns>A successful result containing the payload.</returns>
-#pragma warning disable CA1000
-    public static ResultWithPayload<T> Success(T data)
-#pragma warning restore CA1000
-    {
-        var payload = new Payload<T>(data);
-        return new ResultWithPayload<T>(payload, true);
-    }
-
-    /// <summary>
-    ///     Creates a failure result with the specified error message.
-    /// </summary>
-    /// <param name="errorMessage">The error message for the failure.</param>
-    /// <returns>A failure result without a payload.</returns>
-#pragma warning disable CA1000
-    public static ResultWithPayload<T> Failure(string errorMessage)
-#pragma warning restore CA1000
-    {
-        return new ResultWithPayload<T>(null, false, errorMessage);
-    }
-
-    /// <summary>
-    ///     Validates the integrity of the data by comparing the computed checksum with the one stored in the payload.
-    ///     This method can only be called on results with a payload.
-    /// </summary>
-    /// <returns>True if the checksums match, indicating the data has not been tampered with; otherwise, false.</returns>
-    /// <exception cref="InvalidOperationException">Thrown if called on a result without a payload.</exception>
     public bool ValidateIntegrity()
     {
         if (Payload is null)
@@ -82,9 +55,8 @@ public class ResultWithPayload<T> where T : notnull
         return Payload.VerifyIntegrity();
     }
 
-    // Implicit operator to convert from T to ResultWithPayload<T> (success scenario)
-    public static implicit operator ResultWithPayload<T>(T data) => Success(data);
+    public static implicit operator ResultWithPayload<T>(T data) => ResultWithPayload.Success(data);
 
-    // Implicit operator to convert from string to ResultWithPayload<T> (failure scenario)
-    public static implicit operator ResultWithPayload<T>(string errorMessage) => Failure(errorMessage);
+    public static implicit operator ResultWithPayload<T>(string errorMessage) =>
+        ResultWithPayload.Failure<T>(errorMessage);
 }
