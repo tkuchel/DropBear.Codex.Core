@@ -103,7 +103,7 @@ public class Result
     }
 
 
-    public static bool operator ==(Result left, Result right) => Equals(left, right);
+    public static bool operator ==(Result left, Result? right) => Equals(left, right);
 
     public static bool operator !=(Result left, Result right) => !Equals(left, right);
 }
