@@ -32,6 +32,6 @@ public class PayloadFormatter<T> : IMessagePackFormatter<Payload<T>> where T : n
         var timestamp = reader.ReadInt64();
         var dataType = reader.ReadString();
         Guid payloadId = new Guid(reader.ReadString() ?? throw new InvalidOperationException("Payload Id is null."));
-        return new Payload<T>(data, checksum, signature, publicKey, timestamp, dataType, payloadId);
+        return new Payload<T>(data, checksum, signature, publicKey, timestamp, dataType ?? "Unknown Data Type", payloadId);
     }
 }
