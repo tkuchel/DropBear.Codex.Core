@@ -31,8 +31,8 @@
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
         <PackageReference Include="SauceControl.Blake2Fast" Version="2.0.0" />
+        <PackageReference Include="ServiceStack.Text" Version="8.2.2" />
     </ItemGroup>
 
     <ItemGroup>
