@@ -19,6 +19,126 @@ public static class ResultExtensions
     #region Public Methods
 
     /// <summary>
+    ///     Converts a <see cref="Result{T1, T2}" /> to a <see cref="Task{Result{T1, T2}}" />, facilitating its use in
+    ///     asynchronous operations.
+    /// </summary>
+    /// <typeparam name="T1">The type of the success value.</typeparam>
+    /// <typeparam name="T2">The type of the failure value.</typeparam>
+    /// <param name="result">The <see cref="Result{T1, T2}" /> instance to convert.</param>
+    /// <returns>
+    ///     A <see cref="Task{Result{T1, T2}}" /> representing the asynchronous operation that yields the
+    ///     <see cref="Result{T1, T2}" />.
+    /// </returns>
+    /// <remarks>
+    ///     This method allows for easy integration of the <see cref="Result{T1, T2}" /> pattern with asynchronous workflows,
+    ///     encapsulating the result in a Task for compatibility with async/await patterns.
+    /// </remarks>
+    /// <example>
+    ///     Here's how you can use the <c>AsTask</c> method to work with a <see cref="Result{T1, T2}" /> in an asynchronous
+    ///     context:
+    ///     <code>
+    /// public async Task ProcessResultAsync()
+    /// {
+    ///     Result&lt;int, string&gt; result = ComputeResult();
+    ///     Task&lt;Result&lt;int, string&gt;&gt; taskResult = result.AsTask();
+    ///     
+    ///     Result&lt;int, string&gt; awaitedResult = await taskResult;
+    ///     if (awaitedResult.IsSuccess)
+    ///     {
+    ///         Console.WriteLine($"Success with value: {awaitedResult.SuccessValue}");
+    ///     }
+    ///     else
+    ///     {
+    ///         Console.WriteLine($"Failure with message: {awaitedResult.FailureValue}");
+    ///     }
+    /// }
+    /// </code>
+    ///     This example demonstrates using <c>AsTask</c> to convert a synchronous <see cref="Result{T1, T2}" /> to a Task,
+    ///     enabling its use with async/await.
+    /// </example>
+    public static Task<Result<T1, T2>> AsTask<T1, T2>(this Result<T1, T2> result) => Task.FromResult(result);
+
+    /// <summary>
+    ///     Converts a <see cref="Result" /> to a <see cref="Task{Result}" />, allowing for the result to be used in
+    ///     asynchronous operations.
+    /// </summary>
+    /// <param name="result">The <see cref="Result" /> instance to be converted into a <see cref="Task{Result}" />.</param>
+    /// <returns>A <see cref="Task{Result}" /> that represents an asynchronous operation yielding the <see cref="Result" />.</returns>
+    /// <remarks>
+    ///     This extension method facilitates the integration of the synchronous result pattern with asynchronous workflows,
+    ///     by wrapping a <see cref="Result" /> instance in a Task. This is particularly useful when an API designed for
+    ///     synchronous results
+    ///     needs to be used in an asynchronous context without changing its signature or when bridging synchronous and
+    ///     asynchronous code.
+    /// </remarks>
+    /// <example>
+    ///     Here is an example of using the <c>AsTask</c> method to work with a method that returns a <see cref="Result" /> in
+    ///     an asynchronous context:
+    ///     <code>
+    /// public async Task ProcessResultAsync()
+    /// {
+    ///     Result result = ComputeResult();
+    ///     // Convert the Result to Task&lt;Result&gt; to use in an asynchronous context
+    ///     Task&lt;Result&gt; taskResult = result.AsTask();
+    ///     
+    ///     // Await the Task to get the Result, then proceed based on the Result
+    ///     Result awaitedResult = await taskResult;
+    ///     if (awaitedResult.IsSuccess)
+    ///     {
+    ///         Console.WriteLine("Operation succeeded.");
+    ///     }
+    ///     else
+    ///     {
+    ///         Console.WriteLine($"Failure: {awaitedResult.ErrorMessage}");
+    ///     }
+    /// }
+    /// </code>
+    /// </example>
+    public static Task<Result> AsTask(this Result result) => Task.FromResult(result);
+
+    /// <summary>
+    ///     Converts a <see cref="Result{T}" /> to a <see cref="Task{Result{T}}" />, allowing for the result to be used in
+    ///     asynchronous operations.
+    /// </summary>
+    /// <typeparam name="T">The type of the value encapsulated by the <see cref="Result{T}" />. Must not be null.</typeparam>
+    /// <param name="result">The <see cref="Result{T}" /> instance to be converted into a <see cref="Task{Result{T}}" />.</param>
+    /// <returns>
+    ///     A <see cref="Task{Result{T}}" /> that represents an asynchronous operation yielding the
+    ///     <see cref="Result{T}" />.
+    /// </returns>
+    /// <remarks>
+    ///     This extension method facilitates the integration of the synchronous result pattern with asynchronous workflows,
+    ///     by wrapping a <see cref="Result{T}" /> instance in a Task. This is particularly useful when an API designed for
+    ///     synchronous results
+    ///     needs to be used in an asynchronous context without changing its signature or when bridging synchronous and
+    ///     asynchronous code.
+    /// </remarks>
+    /// <example>
+    ///     Here is an example of using the <c>AsTask</c> method to work with a method that returns a <see cref="Result{T}" />
+    ///     in an asynchronous context:
+    ///     <code>
+    /// public async Task ProcessResultAsync()
+    /// {
+    ///     Result&lt;int&gt; result = ComputeResult();
+    ///     // Convert the Result&lt;int&gt; to Task&lt;Result&lt;int&gt;&gt; to use in an asynchronous context
+    ///     Task&lt;Result&lt;int&gt;&gt; taskResult = result.AsTask();
+    ///     
+    ///     // Await the Task to get the Result, then proceed based on the Result
+    ///     Result&lt;int&gt; awaitedResult = await taskResult;
+    ///     if (awaitedResult.IsSuccess)
+    ///     {
+    ///         Console.WriteLine($"Success with value: {awaitedResult.Value}");
+    ///     }
+    ///     else
+    ///     {
+    ///         Console.WriteLine($"Failure with message: {awaitedResult.ErrorMessage}");
+    ///     }
+    /// }
+    /// </code>
+    /// </example>
+    public static Task<Result<T>> AsTask<T>(this Result<T> result) where T : notnull => Task.FromResult(result);
+
+    /// <summary>
     ///     Serializes a Result T1, T2 to a byte array using MessagePack with LZ4 compression.
     /// </summary>
     /// <typeparam name="T1">The type of the first result value.</typeparam>
@@ -274,10 +394,10 @@ public static class ResultExtensions
             : new ObjectResult(result.ErrorMessage) { StatusCode = 400 }; // Adjust status code as needed
 
     // Converts ResultWithPayload<T> to IActionResult<T>
-    public static IActionResult ToActionResult<T>(this ResultWithPayload<T> result) where T : notnull
-    {
-        return result is { IsSuccess: true, Payload: not null } ? new OkObjectResult(result.Payload) : new ObjectResult(result.ErrorMessage) { StatusCode = 400 }; // Adjust status code as needed
-    }
+    public static IActionResult ToActionResult<T>(this ResultWithPayload<T> result) where T : notnull =>
+        result is { IsSuccess: true, Payload: not null }
+            ? new OkObjectResult(result.Payload)
+            : new ObjectResult(result.ErrorMessage) { StatusCode = 400 }; // Adjust status code as needed
 
     // Async overloads or ToTask methods for async contexts
     public static async Task<IActionResult> ToActionResultAsync(this Task<Result> task)
