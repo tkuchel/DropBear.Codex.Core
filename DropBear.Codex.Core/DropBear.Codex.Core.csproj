@@ -15,7 +15,6 @@
         <RepositoryUrl>https://github.com/tkuchel/DropBear.Codex.Core</RepositoryUrl>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <RepositoryType>Git</RepositoryType>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
 
