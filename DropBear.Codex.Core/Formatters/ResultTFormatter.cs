@@ -2,7 +2,7 @@
 using DropBear.Codex.Core.ReturnTypes;
 using MessagePack;
 using MessagePack.Formatters;
-using ServiceStack.Text;
+using Newtonsoft.Json;
 
 namespace DropBear.Codex.Core.Formatters;
 
@@ -16,7 +16,7 @@ public class ResultFormatter<T> : IMessagePackFormatter<Result<T>> where T : not
         if (value.IsSuccess)
             try
             {
-                jsonValue = JsonSerializer.SerializeToString(value.Value);
+                jsonValue = JsonConvert.SerializeObject(value.Value);
             }
             catch (Exception ex)
             {
@@ -65,7 +65,7 @@ public class ResultFormatter<T> : IMessagePackFormatter<Result<T>> where T : not
                     try
                     {
                         value = (jsonValue is not null
-                            ? JsonSerializer.DeserializeFromString<T>(jsonValue)
+                            ? JsonConvert.DeserializeObject<T>(jsonValue)
                             : default!)!;
                     }
                     catch (Exception ex)
