@@ -5,14 +5,15 @@ using System.Text.Json;
 namespace DropBear.Codex.Core;
 
 #pragma warning disable MA0048
-public class ResultWithPayload<T>
+public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
 #pragma warning restore MA0048
 {
-    internal ResultWithPayload(byte[] payload, string hash, bool isSuccess, string error)
+
+    internal ResultWithPayload(byte[] payload, string hash, ResultState state, string error)
     {
         Payload = payload;
         Hash = hash;
-        IsSuccess = isSuccess;
+        State = state;
         Error = error;
     }
 
@@ -20,12 +21,18 @@ public class ResultWithPayload<T>
     public byte[] Payload { get; }
 #pragma warning restore CA1819
     public string Hash { get; }
-    public bool IsSuccess { get; }
+    public ResultState State { get; }
     public string Error { get; private set; }
+
+    public bool Equals(ResultWithPayload<T>? other)
+    {
+        if (other is null) return false;
+        return State == other.State && Hash == other.Hash && Payload.SequenceEqual(other.Payload);
+    }
 
     public Result<T?> DecompressAndDeserialize()
     {
-        if (!IsSuccess)
+        if (State is not ResultState.Success)
             return ResultFactory.Failure<T?>("Operation failed, cannot decompress.");
 
         try
@@ -56,4 +63,7 @@ public class ResultWithPayload<T>
         var hash = SHA256.HashData(data);
         return Convert.ToBase64String(hash);
     }
+
+    public override bool Equals(object? obj) => Equals(obj as ResultWithPayload<T>);
+    public override int GetHashCode() => HashCode.Combine(State, Hash, Payload);
 }

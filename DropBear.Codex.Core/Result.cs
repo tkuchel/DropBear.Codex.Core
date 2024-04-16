@@ -1,6 +1,8 @@
-﻿namespace DropBear.Codex.Core;
+﻿using System.Diagnostics.Contracts;
 
-public class Result
+namespace DropBear.Codex.Core;
+
+public class Result : IEquatable<Result>
 {
     protected Result(bool isSuccess, string error, Exception? exception)
     {
@@ -16,8 +18,10 @@ public class Result
     public string Error { get; }
     public Exception? Exception { get; }
 
+    [Pure]
     public static Result Success() => new(isSuccess: true, string.Empty, exception: null);
 
+    [Pure]
     public static Result Failure(string error, Exception? exception = null)
     {
         if (string.IsNullOrEmpty(error))
@@ -49,4 +53,14 @@ public class Result
     }
 
     public async Task OnBothAsync(Func<Result, Task> action) => await action(this).ConfigureAwait(false);
+    
+    public bool Equals(Result? other)
+    {
+        if (other is null) return false;
+        return IsSuccess == other.IsSuccess && Error == other.Error && Equals(Exception, other.Exception);
+    }
+
+    public override bool Equals(object? obj) => Equals(obj as Result);
+    public override int GetHashCode() => HashCode.Combine(IsSuccess, Error, Exception);
+
 }
