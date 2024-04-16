@@ -8,7 +8,7 @@
         <Title>DropBear.Codex.Core</Title>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <Authors>Terrence Kuchel (DropBear)</Authors>
-        <Description>DropBear Codex is a .NET library that enhances operation result management and data integrity with `Result`, `ResultT`, and `ResultWithPayloadT` types, complete with checksum verification. Featuring custom MessagePack serialization for complex types, it ensures efficient, secure data handling, perfect for ASP.NET Core integration in both synchronous and asynchronous environments.</Description>
+        <Description>This library provides a set of tools for managing operation results in a robust and railway-oriented programming fashion. It offers various result types to encapsulate the outcomes of operations, handling both successes and failures gracefully without throwing exceptions. This approach enhances error handling, makes your codebase cleaner, and improves the maintainability of your applications.</Description>
         <Copyright>2024 Terrence Kuchel</Copyright>
         <PackageProjectUrl>https://github.com/tkuchel/DropBear.Codex.Core</PackageProjectUrl>
         <PackageLicenseExpression>LGPL-3.0-or-later</PackageLicenseExpression>
@@ -23,15 +23,10 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="BouncyCastle.Cryptography" Version="2.3.0" />
-        <PackageReference Include="MessagePack" Version="2.5.140"/>
-        <PackageReference Include="MessagePack.Annotations" Version="2.5.140"/>
-        <PackageReference Include="Meziantou.DotNet.CodingStandard" Version="1.0.121">
+        <PackageReference Include="Meziantou.DotNet.CodingStandard" Version="1.0.123">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-        <PackageReference Include="SauceControl.Blake2Fast" Version="2.0.0" />
     </ItemGroup>
 
     <ItemGroup>
