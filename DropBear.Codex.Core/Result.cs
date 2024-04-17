@@ -1,6 +1,4 @@
-﻿using System.Diagnostics.Contracts;
-
-namespace DropBear.Codex.Core;
+﻿namespace DropBear.Codex.Core;
 
 /// <summary>
 ///     Represents the result of an operation, indicating success or failure along with optional error information.
@@ -10,114 +8,122 @@ public class Result : IEquatable<Result>
     /// <summary>
     ///     Initializes a new instance of the <see cref="Result" /> class.
     /// </summary>
-    /// <param name="isSuccess">Indicates whether the operation succeeded.</param>
+    /// <param name="state">Indicates the result state of the operation.</param>
     /// <param name="error">The error message if the operation failed.</param>
-    /// <param name="exception">The exception that occurred during the operation.</param>
-    protected Result(bool isSuccess, string error, Exception? exception)
+    /// <param name="exception">The exception that occurred during the operation, if any.</param>
+    protected internal Result(ResultState state, string? error, Exception? exception)
     {
-        if (!isSuccess && string.IsNullOrEmpty(error))
-            throw new ArgumentException("An error message must be provided for failure results.", nameof(error));
+        if (state is ResultState.Failure or ResultState.PartialSuccess && string.IsNullOrEmpty(error))
+            throw new ArgumentException("An error message must be provided for non-success results.", nameof(error));
 
-        IsSuccess = isSuccess;
-        Error = error ?? string.Empty; // Ensure error is never null
+        State = state;
+        Error = error ?? string.Empty;
         Exception = exception;
     }
 
-    /// <summary>
-    ///     Gets a value indicating whether the operation was successful.
-    /// </summary>
-    public bool IsSuccess { get; }
-
-    /// <summary>
-    ///     Gets the error message if the operation failed.
-    /// </summary>
+    public ResultState State { get; }
     public string Error { get; }
-
-    /// <summary>
-    ///     Gets the exception that occurred during the operation, if any.
-    /// </summary>
     public Exception? Exception { get; }
+    public bool IsSuccess => State is ResultState.Success or ResultState.PartialSuccess;
 
-    /// <inheritdoc />
-    public bool Equals(Result? other)
-    {
-        if (other is null) return false;
-        return IsSuccess == other.IsSuccess && Error == other.Error && Equals(Exception, other.Exception);
-    }
+    public bool Equals(Result? other) =>
+        other is not null && State == other.State && Error == other.Error && Equals(Exception, other.Exception);
 
     /// <summary>
-    ///     Creates a new instance of <see cref="Result" /> representing a successful operation.
+    ///     Creates a result indicating a successful operation.
     /// </summary>
-    /// <returns>A new <see cref="Result" /> instance indicating success.</returns>
-    [Pure]
-    public static Result Success() => new(true, string.Empty, null);
+    /// <returns>A success result.</returns>
+    public static Result Success() => new(ResultState.Success, string.Empty, null);
 
     /// <summary>
-    ///     Creates a new instance of <see cref="Result" /> representing a failed operation.
+    ///     Creates a result indicating a failed operation with a specific error message and optional exception.
     /// </summary>
     /// <param name="error">The error message describing the failure.</param>
-    /// <param name="exception">The exception that occurred during the operation.</param>
-    /// <returns>A new <see cref="Result" /> instance indicating failure.</returns>
-    [Pure]
-    public static Result Failure(string error, Exception? exception = null)
-    {
-        if (string.IsNullOrEmpty(error))
-            throw new ArgumentException("Error message cannot be null or empty.", nameof(error));
-
-        return new Result(false, error, exception);
-    }
+    /// <param name="exception">The exception that caused the failure, if available.</param>
+    /// <returns>A failure result.</returns>
+    public static Result Failure(string error, Exception? exception = null) =>
+        new(ResultState.Failure, error, exception);
 
     /// <summary>
-    ///     Executes the specified action if the operation was successful.
+    ///     Creates a result indicating an operation resulted in a warning.
     /// </summary>
-    /// <param name="action">The action to execute.</param>
+    /// <param name="error">The warning message.</param>
+    /// <returns>A warning result.</returns>
+    public static Result Warning(string error) =>
+        new(ResultState.Warning, error, null);
+
+    /// <summary>
+    ///     Creates a result indicating an operation achieved partial success.
+    /// </summary>
+    /// <param name="error">The error message if partial issues occurred.</param>
+    /// <returns>A partial success result.</returns>
+    public static Result PartialSuccess(string error) =>
+        new(ResultState.PartialSuccess, error, null);
+
+    /// <summary>
+    ///     Creates a result indicating an operation was cancelled.
+    /// </summary>
+    /// <param name="error">The error message describing the cancellation reason.</param>
+    /// <returns>A cancelled result.</returns>
+    public static Result Cancelled(string error) =>
+        new(ResultState.Cancelled, error, null);
+
     public void OnSuccess(Action action)
     {
-        if (IsSuccess) action();
+        if (IsSuccess)
+            SafeExecute(action);
     }
 
-    /// <summary>
-    ///     Executes the specified action if the operation failed.
-    /// </summary>
-    /// <param name="action">The action to execute, taking the error message and exception.</param>
     public void OnFailure(Action<string, Exception?> action)
     {
-        if (!IsSuccess) action(Error, Exception);
+        if (State is ResultState.Failure)
+            SafeExecute(() => action(Error, Exception));
     }
 
-    /// <summary>
-    ///     Executes the specified action regardless of the operation's success or failure.
-    /// </summary>
-    /// <param name="action">The action to execute.</param>
-    public void OnBoth(Action<Result> action) => action(this);
+    public void OnWarning(Action<string> action)
+    {
+        if (State is ResultState.Warning)
+            SafeExecute(() => action(Error));
+    }
 
-    /// <summary>
-    ///     Asynchronously executes the specified action if the operation was successful.
-    /// </summary>
-    /// <param name="action">The asynchronous action to execute.</param>
     public async Task OnSuccessAsync(Func<Task> action)
     {
-        if (IsSuccess) await action().ConfigureAwait(false);
+        if (IsSuccess)
+            await SafeExecuteAsync(action).ConfigureAwait(false);
     }
 
-    /// <summary>
-    ///     Asynchronously executes the specified action if the operation failed.
-    /// </summary>
-    /// <param name="action">The asynchronous action to execute, taking the error message and exception.</param>
     public async Task OnFailureAsync(Func<string, Exception?, Task> action)
     {
-        if (!IsSuccess) await action(Error, Exception).ConfigureAwait(false);
+        if (State is ResultState.Failure)
+            await SafeExecuteAsync(() => action(Error, Exception)).ConfigureAwait(false);
     }
 
-    /// <summary>
-    ///     Asynchronously executes the specified action regardless of the operation's success or failure.
-    /// </summary>
-    /// <param name="action">The asynchronous action to execute.</param>
-    public async Task OnBothAsync(Func<Result, Task> action) => await action(this).ConfigureAwait(false);
+    private static void SafeExecute(Action action)
+    {
+        try
+        {
+            action();
+        }
+        catch (Exception ex)
+        {
+            // Log exception or handle it as needed
+            Console.WriteLine("Exception during action execution: " + ex.Message);
+        }
+    }
 
-    /// <inheritdoc />
+    private static async Task SafeExecuteAsync(Func<Task> action)
+    {
+        try
+        {
+            await action().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            // Log exception or handle it as needed
+            Console.WriteLine("Exception during asynchronous action execution: " + ex.Message);
+        }
+    }
+
     public override bool Equals(object? obj) => Equals(obj as Result);
-
-    /// <inheritdoc />
-    public override int GetHashCode() => HashCode.Combine(IsSuccess, Error, Exception);
+    public override int GetHashCode() => HashCode.Combine(State, Error, Exception);
 }

@@ -37,26 +37,41 @@ failureResult.OnFailure(error => Console.WriteLine(error));
 ### Using `Result<T>`
 
 ```csharp
-var result = ResultFactory.Success(123);
-var nextResult = result.Bind(value => ResultFactory.Success(value.ToString()));
+var result = Result.Success(123);
+var nextResult = result.Bind(value => Result.Success(value.ToString()));
 nextResult.OnSuccess(value => Console.WriteLine($"Processed value: {value}"));
 ```
 
 ### Using `Result<TSuccess, TFailure>`
 
 ```csharp
-var result = ResultFactory.Success<int, string>(42);
+var result = Result.Success<int, string>(42);
 result.Match(
     success => Console.WriteLine($"Success with value: {success}"),
     failure => Console.WriteLine($"Failed with error: {failure}")
 );
 ```
 
+### Using `Result<TSuccess, TFailure>` with Additional Handlers
+```csharp
+var result = Result.Success<int, string>(42);
+result.Match(
+    success => Console.WriteLine($"Success with value: {success}"),
+    failure => Console.WriteLine($"Failed with error: {failure}"),
+    onPending: () => Console.WriteLine("Operation is pending."),
+    onCancelled: () => Console.WriteLine("Operation was cancelled."),
+    onWarning: () => Console.WriteLine("Operation completed with warnings."),
+    onPartialSuccess: () => Console.WriteLine("Operation partially succeeded."),
+    onNoOp: () => Console.WriteLine("No operation was performed.")
+);
+
+```
+
 ### Using `ResultWithPayload<T>`
 
 ```csharp
 var data = new { Name = "Example", Value = 42 };
-var result = ResultFactory.SuccessWithPayload(data);
+var result = Result.SuccessWithPayload(data);
 var deserialized = result.DecompressAndDeserialize();
 if (deserialized.IsSuccess)
 {
