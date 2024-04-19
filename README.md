@@ -109,4 +109,4 @@ Project Link: [GitHub](https://github.com/tkuchel/DropBear.Codex.Core)
 
 We encourage you to test thoroughly and contribute if possible before using this library in a production environment. The API and features may change as feedback is received and improvements are made. We appreciate your understanding and contributions to making this library better!
 
-Please use the following link to report any issues or to contribute: [GitHub Issues](https://github.com/your_username/your_project/issues).
+Please use the following link to report any issues or to contribute: [GitHub Issues](https://github.com/tkuchel/DropBear.Codex.Core/issues).
