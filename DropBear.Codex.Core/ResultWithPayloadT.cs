@@ -20,13 +20,13 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
     /// <param name="payload">The payload data.</param>
     /// <param name="hash">The hash value of the payload.</param>
     /// <param name="state">The state of the result (Success or Failure).</param>
-    /// <param name="error">The error message if the operation failed.</param>
-    internal ResultWithPayload(byte[] payload, string hash, ResultState state, string error)
+    /// <param name="errorMessage">The errorMessage message if the operation failed.</param>
+    internal ResultWithPayload(byte[] payload, string hash, ResultState state, string errorMessage)
     {
         Payload = payload;
         Hash = hash;
         State = state;
-        Error = error;
+        ErrorMessage = errorMessage;
     }
 
 #pragma warning disable CA1819
@@ -35,7 +35,7 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
     public string Hash { get; }
     public ResultState State { get; }
     // ReSharper disable once UnusedAutoPropertyAccessor.Global
-    public string Error { get; private set; }
+    public string ErrorMessage { get; private set; }
 
     /// <summary>
     ///     Gets a value indicating whether the result is valid.

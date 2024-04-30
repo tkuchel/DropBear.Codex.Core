@@ -17,17 +17,17 @@ public class Result : IEquatable<Result>
             throw new ArgumentException("An error message must be provided for non-success results.", nameof(error));
 
         State = state;
-        Error = error ?? string.Empty;
+        ErrorMessage = error ?? string.Empty;
         Exception = exception;
     }
 
     public ResultState State { get; }
-    public string Error { get; }
+    public string ErrorMessage { get; }
     public Exception? Exception { get; }
     public bool IsSuccess => State is ResultState.Success or ResultState.PartialSuccess;
 
     public bool Equals(Result? other) =>
-        other is not null && State == other.State && Error == other.Error && Equals(Exception, other.Exception);
+        other is not null && State == other.State && ErrorMessage == other.ErrorMessage && Equals(Exception, other.Exception);
 
     /// <summary>
     ///     Creates a result indicating a successful operation.
@@ -77,13 +77,13 @@ public class Result : IEquatable<Result>
     public void OnFailure(Action<string, Exception?> action)
     {
         if (State is ResultState.Failure)
-            SafeExecute(() => action(Error, Exception));
+            SafeExecute(() => action(ErrorMessage, Exception));
     }
 
     public void OnWarning(Action<string> action)
     {
         if (State is ResultState.Warning)
-            SafeExecute(() => action(Error));
+            SafeExecute(() => action(ErrorMessage));
     }
 
     public async Task OnSuccessAsync(Func<Task> action)
@@ -95,7 +95,7 @@ public class Result : IEquatable<Result>
     public async Task OnFailureAsync(Func<string, Exception?, Task> action)
     {
         if (State is ResultState.Failure)
-            await SafeExecuteAsync(() => action(Error, Exception)).ConfigureAwait(false);
+            await SafeExecuteAsync(() => action(ErrorMessage, Exception)).ConfigureAwait(false);
     }
 
     private static void SafeExecute(Action action)
@@ -125,5 +125,5 @@ public class Result : IEquatable<Result>
     }
 
     public override bool Equals(object? obj) => Equals(obj as Result);
-    public override int GetHashCode() => HashCode.Combine(State, Error, Exception);
+    public override int GetHashCode() => HashCode.Combine(State, ErrorMessage, Exception);
 }

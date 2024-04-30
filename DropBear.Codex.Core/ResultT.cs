@@ -24,14 +24,14 @@ public class Result<T> : IEquatable<Result<T>>
             throw new ArgumentException("An error message must be provided for non-success results.", nameof(error));
 
         Value = value;
-        Error = error ?? string.Empty;
+        ErrorMessage = error ?? string.Empty;
         Exception = exception;
         State = state;
     }
 
     public ResultState State { get; }
     public T Value { get; }
-    public string Error { get; }
+    public string? ErrorMessage { get; }
     public Exception? Exception { get; }
 
     /// <summary>
@@ -41,7 +41,15 @@ public class Result<T> : IEquatable<Result<T>>
 
     public bool Equals(Result<T>? other) =>
         other is not null && State == other.State && EqualityComparer<T>.Default.Equals(Value, other.Value) &&
-        Error == other.Error && Equals(Exception, other.Exception);
+        ErrorMessage == other.ErrorMessage && Equals(Exception, other.Exception);
+
+    public T ValueOrThrow(string? errorMessage = "")
+    {
+        if (IsSuccess) return Value;
+
+        throw new InvalidOperationException(
+            errorMessage ?? ErrorMessage ?? "Operation failed without an error message.");
+    }
 
     /// <summary>
     ///     Creates a successful result with the specified value.
@@ -50,7 +58,7 @@ public class Result<T> : IEquatable<Result<T>>
     /// <returns>A successful result with the specified value.</returns>
     [Pure]
 #pragma warning disable CA1000
-    public static Result<T> Success(T value) => new(value, string.Empty, exception: null, ResultState.Success);
+    public static Result<T> Success(T value) => new(value, string.Empty, null, ResultState.Success);
 #pragma warning restore CA1000
 
     /// <summary>
@@ -83,7 +91,7 @@ public class Result<T> : IEquatable<Result<T>>
     /// <returns>The result of applying the function to the current result value.</returns>
     [Pure]
     public Result<TOut> Bind<TOut>(Func<T, Result<TOut>> func) =>
-        State is ResultState.Success ? func(Value) : Result<TOut>.Failure(Error, Exception);
+        State is ResultState.Success ? func(Value) : Result<TOut>.Failure(ErrorMessage, Exception);
 
     /// <summary>
     ///     Executes the specified action if the operation was successful.
@@ -92,7 +100,7 @@ public class Result<T> : IEquatable<Result<T>>
     public void OnSuccess(Action<T> action)
     {
         if (State is ResultState.Success)
-            Result<T>.SafeExecute(() => action(Value));
+            SafeExecute(() => action(Value));
     }
 
     /// <summary>
@@ -102,7 +110,7 @@ public class Result<T> : IEquatable<Result<T>>
     public void OnFailure(Action<string, Exception?> action)
     {
         if (State is ResultState.Failure)
-            Result<T>.SafeExecute(() => action(Error, Exception));
+            SafeExecute(() => action(ErrorMessage, Exception));
     }
 
     /// <summary>
@@ -111,7 +119,7 @@ public class Result<T> : IEquatable<Result<T>>
     /// <param name="action">The asynchronous action to execute.</param>
     public async Task OnSuccessAsync(Func<T, Task> action)
     {
-        if (State is ResultState.Success) await Result<T>.SafeExecuteAsync(() => action(Value)).ConfigureAwait(false);
+        if (State is ResultState.Success) await SafeExecuteAsync(() => action(Value)).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -120,7 +128,8 @@ public class Result<T> : IEquatable<Result<T>>
     /// <param name="action">The asynchronous action to execute, providing error information and exception if available.</param>
     public async Task OnFailureAsync(Func<string, Exception?, Task> action)
     {
-        if (State is ResultState.Failure) await Result<T>.SafeExecuteAsync(() => action(Error, Exception)).ConfigureAwait(false);
+        if (State is ResultState.Failure)
+            await SafeExecuteAsync(() => action(ErrorMessage, Exception)).ConfigureAwait(false);
     }
 
     private static void SafeExecute(Action action)
@@ -129,7 +138,7 @@ public class Result<T> : IEquatable<Result<T>>
         catch (Exception ex)
         {
             // Handle exception, log it, or propagate as needed
-            Console.WriteLine("Error executing action: " + ex.Message);
+            Console.WriteLine("ErrorMessage executing action: " + ex.Message);
         }
     }
 
@@ -139,13 +148,13 @@ public class Result<T> : IEquatable<Result<T>>
         catch (Exception ex)
         {
             // Handle exception, log it, or propagate as needed
-            Console.WriteLine("Error executing async action: " + ex.Message);
+            Console.WriteLine("ErrorMessage executing async action: " + ex.Message);
         }
     }
 
     public override bool Equals(object? obj) => Equals(obj as Result<T>);
 
-    public override int GetHashCode() => HashCode.Combine(State, Value, Error, Exception);
+    public override int GetHashCode() => HashCode.Combine(State, Value, ErrorMessage, Exception);
 
     // Implicit conversion from T to Result<T> (Success)
     public static implicit operator Result<T>(T value) => Success(value);
