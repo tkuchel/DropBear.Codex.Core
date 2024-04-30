@@ -91,7 +91,7 @@ public class Result<T> : IEquatable<Result<T>>
     /// <returns>The result of applying the function to the current result value.</returns>
     [Pure]
     public Result<TOut> Bind<TOut>(Func<T, Result<TOut>> func) =>
-        State is ResultState.Success ? func(Value) : Result<TOut>.Failure(ErrorMessage, Exception);
+        State is ResultState.Success ? func(Value) : Result<TOut>.Failure(ErrorMessage ?? $"An unknown error has occured", Exception);
 
     /// <summary>
     ///     Executes the specified action if the operation was successful.
@@ -110,7 +110,7 @@ public class Result<T> : IEquatable<Result<T>>
     public void OnFailure(Action<string, Exception?> action)
     {
         if (State is ResultState.Failure)
-            SafeExecute(() => action(ErrorMessage, Exception));
+            SafeExecute(() => action(ErrorMessage ?? "An unknown error has occured.", Exception));
     }
 
     /// <summary>
@@ -129,7 +129,7 @@ public class Result<T> : IEquatable<Result<T>>
     public async Task OnFailureAsync(Func<string, Exception?, Task> action)
     {
         if (State is ResultState.Failure)
-            await SafeExecuteAsync(() => action(ErrorMessage, Exception)).ConfigureAwait(false);
+            await SafeExecuteAsync(() => action(ErrorMessage ?? "An unknown error has occured.", Exception)).ConfigureAwait(false);
     }
 
     private static void SafeExecute(Action action)
