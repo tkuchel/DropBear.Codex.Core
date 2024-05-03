@@ -146,6 +146,23 @@ public class Result<T> : IEquatable<Result<T>>
         };
     
     /// <summary>
+    ///     Unwraps the underlying result from a Result<Result<T>>.
+    /// </summary>
+    /// <returns>The unwrapped result.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the result does not contain an underlying Result<T>.</exception>
+    public Result<T> Unwrap()
+    {
+        if (typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition() == typeof(Result<>))
+        {
+            return this;
+        }
+        else
+        {
+            throw new InvalidOperationException("Cannot unwrap a result that does not contain an underlying Result<T>.");
+        }
+    }
+    
+    /// <summary>
     ///     Maps the current result to a new result with a different value type using the provided mapping function.
     /// </summary>
     /// <typeparam name="TOut">The type of the new result value.</typeparam>
