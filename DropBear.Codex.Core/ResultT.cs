@@ -91,64 +91,79 @@ public class Result<T> : IEquatable<Result<T>>
     /// <returns>The result of applying the function to the current result value.</returns>
     [Pure]
     public Result<TOut> Bind<TOut>(Func<T, Result<TOut>> func) =>
-        State is ResultState.Success ? func(Value) : Result<TOut>.Failure(ErrorMessage ?? $"An unknown error has occured", Exception);
+        State is ResultState.Success
+            ? func(Value)
+            : Result<TOut>.Failure(ErrorMessage ?? "An unknown error has occured", Exception);
+
 
     /// <summary>
-    ///     Executes the specified action if the operation was successful.
+    ///     Executes the specified action if the operation was successful, passing the result value.
+    ///     If the operation failed, a failure result with the error message is returned.
     /// </summary>
-    /// <param name="action">The action to execute.</param>
-    public void OnSuccess(Action<T> action)
-    {
-        if (State is ResultState.Success)
-            SafeExecute(() => action(Value));
-    }
+    /// <param name="action">The action to execute if the operation was successful.</param>
+    /// <returns>The original result if the operation was successful, or a failure result with the error message.</returns>
+    [Pure]
+    public Result OnSuccess(Func<T, Result> action) =>
+        State switch
+        {
+            ResultState.Success => SafeExecute(() => action(Value)),
+            _ => Result.Failure(ErrorMessage ?? "An unknown error has occurred.")
+        };
 
     /// <summary>
-    ///     Executes the specified action if the operation failed.
+    ///     Executes the specified function if the operation was successful, passing the result value.
+    ///     If the operation failed, a failure result with the error message is returned.
     /// </summary>
-    /// <param name="action">The action to execute, providing error information and exception if available.</param>
-    public void OnFailure(Action<string, Exception?> action)
-    {
-        if (State is ResultState.Failure)
-            SafeExecute(() => action(ErrorMessage ?? "An unknown error has occured.", Exception));
-    }
+    /// <typeparam name="TOut">The type of the returned result value.</typeparam>
+    /// <param name="func">The function to execute if the operation was successful.</param>
+    /// <returns>
+    ///     The result of executing the function if the operation was successful, or a failure result with the error
+    ///     message.
+    /// </returns>
+    [Pure]
+    public Result<TOut> OnSuccess<TOut>(Func<T, Result<TOut>> func) =>
+        State switch
+        {
+            ResultState.Success => SafeExecute(() => func(Value)),
+            _ => Result<TOut>.Failure(ErrorMessage ?? "An unknown error has occurred.")
+        };
 
     /// <summary>
-    ///     Asynchronously executes the specified action if the operation was successful.
+    ///     Unwraps the error message from the result.
+    ///     If the operation was successful, the specified default error message is returned.
     /// </summary>
-    /// <param name="action">The asynchronous action to execute.</param>
-    public async Task OnSuccessAsync(Func<T, Task> action)
-    {
-        if (State is ResultState.Success) await SafeExecuteAsync(() => action(Value)).ConfigureAwait(false);
-    }
+    /// <param name="defaultError">The default error message to return if the operation was successful.</param>
+    /// <returns>
+    ///     The error message if the operation failed, or the specified default error message if the operation was
+    ///     successful.
+    /// </returns>
+    [Pure]
+    public string UnwrapError(string defaultError = "") =>
+        State switch
+        {
+            ResultState.Success => defaultError,
+            _ => ErrorMessage ?? "An unknown error has occurred."
+        };
 
-    /// <summary>
-    ///     Asynchronously executes the specified action if the operation failed.
-    /// </summary>
-    /// <param name="action">The asynchronous action to execute, providing error information and exception if available.</param>
-    public async Task OnFailureAsync(Func<string, Exception?, Task> action)
+    private static Result SafeExecute(Func<Result> action)
     {
-        if (State is ResultState.Failure)
-            await SafeExecuteAsync(() => action(ErrorMessage ?? "An unknown error has occured.", Exception)).ConfigureAwait(false);
-    }
-
-    private static void SafeExecute(Action action)
-    {
-        try { action(); }
+        try { return action(); }
         catch (Exception ex)
         {
             // Handle exception, log it, or propagate as needed
-            Console.WriteLine("ErrorMessage executing action: " + ex.Message);
+            Console.WriteLine("Error executing action: " + ex.Message);
+            return Result.Failure(ex.Message);
         }
     }
 
-    private static async Task SafeExecuteAsync(Func<Task> action)
+    private static Result<TOut> SafeExecute<TOut>(Func<Result<TOut>> func)
     {
-        try { await action().ConfigureAwait(false); }
+        try { return func(); }
         catch (Exception ex)
         {
             // Handle exception, log it, or propagate as needed
-            Console.WriteLine("ErrorMessage executing async action: " + ex.Message);
+            Console.WriteLine("Error executing function: " + ex.Message);
+            return Result<TOut>.Failure(ex.Message);
         }
     }
 
