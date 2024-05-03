@@ -144,6 +144,21 @@ public class Result<T> : IEquatable<Result<T>>
             ResultState.Success => defaultError,
             _ => ErrorMessage ?? "An unknown error has occurred."
         };
+    
+    /// <summary>
+    ///     Maps the current result to a new result with a different value type using the provided mapping function.
+    /// </summary>
+    /// <typeparam name="TOut">The type of the new result value.</typeparam>
+    /// <param name="mapper">The function to map the current result value to a new value.</param>
+    /// <returns>A new result with the mapped value if the current result is successful, or a failure result with the same error information.</returns>
+    public Result<TOut> Map<TOut>(Func<T, TOut> mapper)
+    {
+        return State switch
+        {
+            ResultState.Success => Result<TOut>.Success(mapper(Value)),
+            _ => Result<TOut>.Failure(ErrorMessage ?? "An unknown error has occurred.", Exception)
+        };
+    }
 
     private static Result SafeExecute(Func<Result> action)
     {
