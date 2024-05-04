@@ -131,11 +131,13 @@ public class Result : IEquatable<Result>
     // In the Result class
     public Result Map(Func<Result> onSuccess, Func<string, Exception?, Result> onFailure,
         Func<string, Result>? onWarning = null, Func<string, Result>? onPartialSuccess = null,
-        Func<string, Result>? onCancelled = null) =>
-        Match(onSuccess, onFailure, onWarning, onPartialSuccess, onCancelled);
+        Func<string, Result>? onCancelled = null, Func<string, Result>? onPending = null,
+        Func<string, Result>? onNoOp = null) =>
+        Match(onSuccess, onFailure, onWarning, onPartialSuccess, onCancelled, onPending, onNoOp);
 
     public T Match<T>(Func<T> onSuccess, Func<string, Exception?, T> onFailure, Func<string, T>? onWarning = null,
-        Func<string, T>? onPartialSuccess = null, Func<string, T>? onCancelled = null) =>
+        Func<string, T>? onPartialSuccess = null, Func<string, T>? onCancelled = null,
+        Func<string, T>? onPending = null, Func<string, T>? onNoOp = null) =>
         State switch
         {
             ResultState.Success => onSuccess(),
@@ -143,6 +145,8 @@ public class Result : IEquatable<Result>
             ResultState.Warning => onWarning!.Invoke(ErrorMessage) ?? onFailure(ErrorMessage, Exception),
             ResultState.PartialSuccess => onPartialSuccess!.Invoke(ErrorMessage) ?? onFailure(ErrorMessage, Exception),
             ResultState.Cancelled => onCancelled!.Invoke(ErrorMessage) ?? onFailure(ErrorMessage, Exception),
+            ResultState.Pending => onPending!.Invoke(ErrorMessage) ?? onFailure(ErrorMessage, Exception),
+            ResultState.NoOp => onNoOp!.Invoke(ErrorMessage) ?? onFailure(ErrorMessage, Exception),
             _ => throw new InvalidOperationException("Unhandled result state.")
         };
 
