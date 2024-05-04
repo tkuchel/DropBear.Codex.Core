@@ -127,6 +127,27 @@ public class Result<T> : IEquatable<Result<T>>
             ResultState.Success => SafeExecute(() => func(Value)),
             _ => Result<TOut>.Failure(ErrorMessage ?? "An unknown error has occurred.")
         };
+    
+    /// <summary>
+    ///     Executes the specified action if the operation failed.
+    /// </summary>
+    /// <param name="action">The action to execute if the operation failed.</param>
+    /// <returns>The current result instance.</returns>
+    public Result<T> OnFailure(Action<string, Exception?> action)
+    {
+        if (State is not ResultState.Failure) return this;
+        try
+        {
+            action(ErrorMessage ?? string.Empty, Exception);
+        }
+        catch (Exception ex)
+        {
+            // Handle exception, log it, or propagate as needed
+            Console.WriteLine("Error executing action: " + ex.Message);
+        }
+
+        return this;
+    }
 
     /// <summary>
     ///     Unwraps the error message from the result.
@@ -146,20 +167,16 @@ public class Result<T> : IEquatable<Result<T>>
         };
     
     /// <summary>
-    ///     Unwraps the underlying result from a Result<Result<T>>.
+    ///     Unwraps the result when it is a Result&lt;T&gt;>.
     /// </summary>
     /// <returns>The unwrapped result.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the result does not contain an underlying Result<T>.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the result is not a Result&lt;T&gt;.</exception>
     public Result<T> Unwrap()
     {
-        if (typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition() == typeof(Result<>))
-        {
-            return this;
-        }
-        else
-        {
-            throw new InvalidOperationException("Cannot unwrap a result that does not contain an underlying Result<T>.");
-        }
+        if (this is { } result)
+            return result.Value;
+
+        throw new InvalidOperationException("Cannot unwrap a result that is not a Result<T>.");
     }
     
     /// <summary>

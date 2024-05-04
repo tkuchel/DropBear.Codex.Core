@@ -67,18 +67,47 @@ public class Result : IEquatable<Result>
     /// <returns>A cancelled result.</returns>
     public static Result Cancelled(string error) =>
         new(ResultState.Cancelled, error, null);
+    
+    /// <summary>
+    ///     Unwraps the result when it is a Result.
+    /// </summary>
+    /// <returns>The unwrapped result.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the result is not a Result.</exception>
+    public Result Unwrap()
+    {
+        if (this is { } result)
+            return result;
+
+        throw new InvalidOperationException("Cannot unwrap a result that is not a Result<Result>.");
+    }
+    
+    /// <summary>
+    ///     Executes the specified action if the operation failed.
+    /// </summary>
+    /// <param name="action">The action to execute if the operation failed.</param>
+    /// <returns>The current result instance.</returns>
+    public Result OnFailure(Action<string, Exception?> action)
+    {
+        if (State is not ResultState.Failure) return this;
+        try
+        {
+            action(ErrorMessage, Exception);
+        }
+        catch (Exception ex)
+        {
+            // Handle exception, log it, or propagate as needed
+            Console.WriteLine("Error executing action: " + ex.Message);
+        }
+
+        return this;
+    }
 
     public void OnSuccess(Action action)
     {
         if (IsSuccess)
             SafeExecute(action);
     }
-
-    public void OnFailure(Action<string, Exception?> action)
-    {
-        if (State is ResultState.Failure)
-            SafeExecute(() => action(ErrorMessage, Exception));
-    }
+    
 
     public void OnWarning(Action<string> action)
     {
