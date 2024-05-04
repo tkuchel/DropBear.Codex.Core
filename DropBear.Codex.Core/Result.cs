@@ -27,7 +27,8 @@ public class Result : IEquatable<Result>
     public bool IsSuccess => State is ResultState.Success or ResultState.PartialSuccess;
 
     public bool Equals(Result? other) =>
-        other is not null && State == other.State && ErrorMessage == other.ErrorMessage && Equals(Exception, other.Exception);
+        other is not null && State == other.State && ErrorMessage == other.ErrorMessage &&
+        Equals(Exception, other.Exception);
 
     /// <summary>
     ///     Creates a result indicating a successful operation.
@@ -67,7 +68,7 @@ public class Result : IEquatable<Result>
     /// <returns>A cancelled result.</returns>
     public static Result Cancelled(string error) =>
         new(ResultState.Cancelled, error, null);
-    
+
     /// <summary>
     ///     Unwraps the result when it is a Result.
     /// </summary>
@@ -80,7 +81,7 @@ public class Result : IEquatable<Result>
 
         throw new InvalidOperationException("Cannot unwrap a result that is not a Result<Result>.");
     }
-    
+
     /// <summary>
     ///     Executes the specified action if the operation failed.
     /// </summary>
@@ -107,7 +108,7 @@ public class Result : IEquatable<Result>
         if (IsSuccess)
             SafeExecute(action);
     }
-    
+
 
     public void OnWarning(Action<string> action)
     {
@@ -126,6 +127,24 @@ public class Result : IEquatable<Result>
         if (State is ResultState.Failure)
             await SafeExecuteAsync(() => action(ErrorMessage, Exception)).ConfigureAwait(false);
     }
+
+    // In the Result class
+    public Result Map(Func<Result> onSuccess, Func<string, Exception?, Result> onFailure,
+        Func<string, Result>? onWarning = null, Func<string, Result>? onPartialSuccess = null,
+        Func<string, Result>? onCancelled = null) =>
+        Match(onSuccess, onFailure, onWarning, onPartialSuccess, onCancelled);
+
+    public T Match<T>(Func<T> onSuccess, Func<string, Exception?, T> onFailure, Func<string, T>? onWarning = null,
+        Func<string, T>? onPartialSuccess = null, Func<string, T>? onCancelled = null) =>
+        State switch
+        {
+            ResultState.Success => onSuccess(),
+            ResultState.Failure => onFailure(ErrorMessage, Exception),
+            ResultState.Warning => onWarning!.Invoke(ErrorMessage) ?? onFailure(ErrorMessage, Exception),
+            ResultState.PartialSuccess => onPartialSuccess!.Invoke(ErrorMessage) ?? onFailure(ErrorMessage, Exception),
+            ResultState.Cancelled => onCancelled!.Invoke(ErrorMessage) ?? onFailure(ErrorMessage, Exception),
+            _ => throw new InvalidOperationException("Unhandled result state.")
+        };
 
     private static void SafeExecute(Action action)
     {

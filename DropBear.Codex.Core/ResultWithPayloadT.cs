@@ -34,6 +34,7 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
 #pragma warning restore CA1819
     public string Hash { get; }
     public ResultState State { get; }
+
     // ReSharper disable once UnusedAutoPropertyAccessor.Global
     public string ErrorMessage { get; private set; }
 
@@ -50,6 +51,11 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
         return State == other.State && Hash == other.Hash && Payload.SequenceEqual(other.Payload);
     }
 
+    /// <summary>
+    ///     Creates a successful result with the specified payload data.
+    /// </summary>
+    /// <param name="data">The payload data.</param>
+    /// <returns>A successful result with the payload.</returns>
 #pragma warning disable CA1000
     public static ResultWithPayload<T> SuccessWithPayload(T data)
 #pragma warning restore CA1000
@@ -72,11 +78,21 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
         }
     }
 
+    /// <summary>
+    ///     Creates a failure result with the specified error message.
+    /// </summary>
+    /// <param name="error">The error message.</param>
+    /// <returns>A failure result with the error message.</returns>
 #pragma warning disable CA1000
     public static ResultWithPayload<T> FailureWithPayload(string error) =>
 #pragma warning restore CA1000
         new([], string.Empty, ResultState.Failure, error);
 
+    /// <summary>
+    ///     Creates a successful result with the specified payload data asynchronously.
+    /// </summary>
+    /// <param name="data">The payload data.</param>
+    /// <returns>A task representing the asynchronous operation. The task result is a successful result with the payload.</returns>
 #pragma warning disable CA1000
     public static async Task<ResultWithPayload<T>> SuccessWithPayloadAsync(T data)
 #pragma warning restore CA1000
@@ -99,6 +115,16 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
         }
     }
 
+    // In the ResultWithPayload<T> class
+    public void UpdateErrorMessage(string errorMessage) => ErrorMessage = errorMessage;
+
+    /// <summary>
+    ///     Decompresses and deserializes the payload data.
+    /// </summary>
+    /// <returns>
+    ///     A result containing the decompressed and deserialized payload data if successful, or a failure result if an
+    ///     error occurred.
+    /// </returns>
     public Result<T?> DecompressAndDeserialize()
     {
         if (State is not ResultState.Success)

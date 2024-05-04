@@ -94,9 +94,11 @@ public class Result<TSuccess, TFailure> : IEquatable<Result<TSuccess, TFailure>>
         };
 
         // Provide a default no-op function that returns a default value of type T
-        T? DefaultFunc() => default(T);
+        T? DefaultFunc()
+        {
+            return default;
+        }
     }
-
 
 
     /// <summary>
@@ -154,6 +156,12 @@ public class Result<TSuccess, TFailure> : IEquatable<Result<TSuccess, TFailure>>
         }
     }
 
+// In the Result<TSuccess, TFailure> class
+    public Result<TNewSuccess, TFailure> Bind<TNewSuccess>(Func<TSuccess, Result<TNewSuccess, TFailure>> onSuccess) =>
+        Match(
+            success => onSuccess(success),
+            failure => new Result<TNewSuccess, TFailure>(default!, failure, ResultState.Failure)
+        ) ?? throw new InvalidOperationException("Match function returned null.");
 
     public override bool Equals(object? obj) => Equals(obj as Result<TSuccess, TFailure>);
     public override int GetHashCode() => HashCode.Combine(State, Success, Failure);
