@@ -1,4 +1,8 @@
-﻿using System.Diagnostics.Contracts;
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace DropBear.Codex.Core;
 
@@ -33,6 +37,7 @@ public class Result<T> : IEquatable<Result<T>>
     public T Value { get; }
     public string? ErrorMessage { get; }
     public Exception? Exception { get; }
+    public ReadOnlyCollection<Exception> Exceptions { get; private set; } = new(new List<Exception>());
 
     /// <summary>
     ///     Gets a value indicating whether the operation was successful.
@@ -41,7 +46,8 @@ public class Result<T> : IEquatable<Result<T>>
 
     public bool Equals(Result<T>? other) =>
         other is not null && State == other.State && EqualityComparer<T>.Default.Equals(Value, other.Value) &&
-        ErrorMessage == other.ErrorMessage && Equals(Exception, other.Exception);
+        ErrorMessage == other.ErrorMessage && Equals(Exception, other.Exception) &&
+        Exceptions.SequenceEqual(other.Exceptions);
 
     public T ValueOrThrow(string? errorMessage = "")
     {
@@ -85,6 +91,23 @@ public class Result<T> : IEquatable<Result<T>>
         new(default!, exception.Message, exception, ResultState.Failure);
 
     /// <summary>
+    ///     Creates a failure result with the specified collection of exceptions.
+    /// </summary>
+    /// <param name="exceptions">The collection of exceptions describing the failure.</param>
+    /// <returns>A failure result with the specified collection of exceptions.</returns>
+    [Pure]
+#pragma warning disable CA1000
+    public static Result<T> Failure(Collection<Exception> exceptions)
+    {
+        var errorMessage = exceptions.Count > 0 ? exceptions.First().Message : "Multiple errors occurred.";
+        return new Result<T>(default!, errorMessage, exceptions.FirstOrDefault(), ResultState.Failure)
+        {
+            Exceptions = new ReadOnlyCollection<Exception>(exceptions.ToList())
+        };
+    }
+#pragma warning restore CA1000
+
+    /// <summary>
     ///     Binds the result to another operation.
     /// </summary>
     /// <param name="func">The function to apply to the current result value if the operation was successful.</param>
@@ -93,8 +116,7 @@ public class Result<T> : IEquatable<Result<T>>
     public Result<TOut> Bind<TOut>(Func<T, Result<TOut>> func) =>
         State is ResultState.Success
             ? func(Value)
-            : Result<TOut>.Failure(ErrorMessage ?? "An unknown error has occured", Exception);
-
+            : Result<TOut>.Failure(ErrorMessage ?? "An unknown error has occurred", Exception);
 
     /// <summary>
     ///     Executes the specified action if the operation was successful, passing the result value.
