@@ -31,7 +31,7 @@ public class Result : IEquatable<Result>
 
     public bool Equals(Result? other) =>
         other is not null && State == other.State && ErrorMessage == other.ErrorMessage &&
-        Equals(Exception, other.Exception);
+        Equals(Exception, other.Exception) && Exceptions.SequenceEqual(other.Exceptions);
 
     /// <summary>
     ///     Creates a result indicating a successful operation.
@@ -48,11 +48,20 @@ public class Result : IEquatable<Result>
     public static Result Failure(string error, Exception? exception = null) =>
         new(ResultState.Failure, error, exception);
 
-    public static Result Failure(Collection<Exception> exceptions) => new (ResultState.Failure, string.Empty, null)
+    /// <summary>
+    ///     Creates a result indicating a failed operation with a collection of exceptions.
+    /// </summary>
+    /// <param name="exceptions">The collection of exceptions describing the failure.</param>
+    /// <returns>A failure result.</returns>
+    public static Result Failure(Collection<Exception> exceptions)
     {
-        Exceptions = new(exceptions)
-    };
-    
+        var errorMessage = exceptions.Count > 0 ? exceptions.First().Message : "Multiple errors occurred.";
+        return new Result(ResultState.Failure, errorMessage, exceptions.FirstOrDefault())
+        {
+            Exceptions = new ReadOnlyCollection<Exception>(exceptions.ToList())
+        };
+    }
+
     /// <summary>
     ///     Creates a result indicating an operation resulted in a warning.
     /// </summary>
@@ -69,7 +78,6 @@ public class Result : IEquatable<Result>
     public static Result PartialSuccess(string error) =>
         new(ResultState.PartialSuccess, error, null);
 
-    
     /// <summary>
     ///     Creates a result indicating an operation was cancelled.
     /// </summary>
@@ -82,7 +90,7 @@ public class Result : IEquatable<Result>
     ///     Unwraps the result when it is a Result.
     /// </summary>
     /// <returns>The unwrapped result.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the result is not a Result.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the result is not a Result<Result>.</exception>
     public Result Unwrap()
     {
         if (this is { } result)
@@ -118,7 +126,6 @@ public class Result : IEquatable<Result>
             SafeExecute(action);
     }
 
-
     public void OnWarning(Action<string> action)
     {
         if (State is ResultState.Warning)
@@ -137,7 +144,6 @@ public class Result : IEquatable<Result>
             await SafeExecuteAsync(() => action(ErrorMessage, Exception)).ConfigureAwait(false);
     }
 
-    // In the Result class
     public Result Map(Func<Result> onSuccess, Func<string, Exception?, Result> onFailure,
         Func<string, Result>? onWarning = null, Func<string, Result>? onPartialSuccess = null,
         Func<string, Result>? onCancelled = null, Func<string, Result>? onPending = null,
