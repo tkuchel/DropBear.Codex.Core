@@ -1,4 +1,6 @@
-﻿namespace DropBear.Codex.Core;
+﻿using System.Collections.ObjectModel;
+
+namespace DropBear.Codex.Core;
 
 /// <summary>
 ///     Represents the result of an operation, indicating success or failure along with optional error information.
@@ -24,6 +26,7 @@ public class Result : IEquatable<Result>
     public ResultState State { get; }
     public string ErrorMessage { get; }
     public Exception? Exception { get; }
+    public ReadOnlyCollection<Exception> Exceptions { get; private set; } = new(new List<Exception>());
     public bool IsSuccess => State is ResultState.Success or ResultState.PartialSuccess;
 
     public bool Equals(Result? other) =>
@@ -45,6 +48,11 @@ public class Result : IEquatable<Result>
     public static Result Failure(string error, Exception? exception = null) =>
         new(ResultState.Failure, error, exception);
 
+    public static Result Failure(Collection<Exception> exceptions) => new (ResultState.Failure, string.Empty, null)
+    {
+        Exceptions = new(exceptions)
+    };
+    
     /// <summary>
     ///     Creates a result indicating an operation resulted in a warning.
     /// </summary>
@@ -61,6 +69,7 @@ public class Result : IEquatable<Result>
     public static Result PartialSuccess(string error) =>
         new(ResultState.PartialSuccess, error, null);
 
+    
     /// <summary>
     ///     Creates a result indicating an operation was cancelled.
     /// </summary>
