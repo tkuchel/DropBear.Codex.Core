@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.Contracts;
+﻿using System.Diagnostics.Contracts;
 
 namespace DropBear.Codex.Core;
 
@@ -25,11 +23,22 @@ public class Result<TSuccess, TFailure> : IEquatable<Result<TSuccess, TFailure>>
         Success = success;
         Failure = failure;
         State = state;
+        ErrorMessage = string.Empty;
+    }
+
+    protected Result(TSuccess value1, TFailure value2, bool isSuccess, string errorMessage)
+    {
+        Success = value1;
+        Failure = value2;
+        IsSuccess = isSuccess;
+        ErrorMessage = errorMessage;
     }
 
     public TSuccess Success { get; }
     public TFailure Failure { get; }
     public ResultState State { get; }
+    public bool IsSuccess { get; }
+    public string ErrorMessage { get; }
 
     public bool Equals(Result<TSuccess, TFailure>? other) =>
         other is not null && State == other.State &&
@@ -49,6 +58,20 @@ public class Result<TSuccess, TFailure> : IEquatable<Result<TSuccess, TFailure>>
     /// <param name="failure">The failure value.</param>
     public static implicit operator Result<TSuccess, TFailure>(TFailure failure) =>
         new(default!, failure, ResultState.Failure);
+
+#pragma warning disable CA1000
+    public static Result<TSuccess, TFailure> Succeeded(TSuccess value1, TFailure value2)
+#pragma warning restore CA1000
+    {
+        return new Result<TSuccess, TFailure>(value1, value2, true, string.Empty);
+    }
+
+#pragma warning disable CA1000
+    public static Result<TSuccess, TFailure> Failed(string errorMessage)
+#pragma warning restore CA1000
+    {
+        return new Result<TSuccess, TFailure>(default!, default!, false, errorMessage);
+    }
 
     /// <summary>
     ///     Matches the result with the specified functions based on the current state.
@@ -161,9 +184,19 @@ public class Result<TSuccess, TFailure> : IEquatable<Result<TSuccess, TFailure>>
 // In the Result<TSuccess, TFailure> class
     public Result<TNewSuccess, TFailure> Bind<TNewSuccess>(Func<TSuccess, Result<TNewSuccess, TFailure>> onSuccess) =>
         Match(
-            success => onSuccess(success),
+            onSuccess,
             failure => new Result<TNewSuccess, TFailure>(default!, failure, ResultState.Failure)
         ) ?? throw new InvalidOperationException("Match function returned null.");
+
+    public void OnSuccess(Action<TSuccess, TFailure> action)
+    {
+        if (IsSuccess) action(Success, Failure);
+    }
+
+    public void OnFailure(Action<string> action)
+    {
+        if (!IsSuccess) action(ErrorMessage);
+    }
 
     public override bool Equals(object? obj) => Equals(obj as Result<TSuccess, TFailure>);
     public override int GetHashCode() => HashCode.Combine(State, Success, Failure);

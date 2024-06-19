@@ -1,53 +1,26 @@
-﻿using System;
-using System.Diagnostics.Contracts;
-using System.IO;
-using System.IO.Compression;
-using System.Linq;
+﻿using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace DropBear.Codex.Core;
 
-/// <summary>
-///     Represents the result of an operation that includes a payload, a hash value, and error information.
-/// </summary>
-/// <typeparam name="T">The type of the payload.</typeparam>
-#pragma warning disable MA0048
 public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
-#pragma warning restore MA0048
 {
-    /// <summary>
-    ///     Initializes a new instance of the ResultWithPayload&lt;T&gt; class.
-    /// </summary>
-    /// <param name="payload">The payload data.</param>
-    /// <param name="hash">The hash value of the payload.</param>
-    /// <param name="state">The state of the result (Success or Failure).</param>
-    /// <param name="errorMessage">The errorMessage message if the operation failed.</param>
     internal ResultWithPayload(byte[] payload, string hash, ResultState state, string errorMessage)
     {
-        Payload = payload;
-        Hash = hash;
+        Payload = payload ?? Array.Empty<byte>();
+        Hash = hash ?? string.Empty;
         State = state;
-        ErrorMessage = errorMessage;
+        ErrorMessage = errorMessage ?? string.Empty;
     }
 
-#pragma warning disable CA1819
     public byte[] Payload { get; }
-#pragma warning restore CA1819
     public string Hash { get; }
     public ResultState State { get; }
-
-    // ReSharper disable once UnusedAutoPropertyAccessor.Global
     public string ErrorMessage { get; private set; }
 
-    /// <summary>
-    ///     Gets a value indicating whether the result is valid.
-    ///     The result is valid if the state is Success and the hash value is valid.
-    /// </summary>
-    [Pure]
-    public bool IsValid => State is ResultState.Success && ValidateHash(Payload, Hash);
+    public bool IsValid => State == ResultState.Success && ValidateHash(Payload, Hash);
 
     public bool Equals(ResultWithPayload<T>? other)
     {
@@ -55,51 +28,34 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
         return State == other.State && Hash == other.Hash && Payload.SequenceEqual(other.Payload);
     }
 
-    /// <summary>
-    ///     Creates a successful result with the specified payload data.
-    /// </summary>
-    /// <param name="data">The payload data.</param>
-    /// <returns>A successful result with the payload.</returns>
-#pragma warning disable CA1000
     public static ResultWithPayload<T> SuccessWithPayload(T data)
-#pragma warning restore CA1000
     {
         try
         {
             var jsonData = JsonSerializer.Serialize(data);
+            Console.WriteLine($"Serialized JSON: {jsonData}");
             var compressedData = Compress(Encoding.UTF8.GetBytes(jsonData));
+            Console.WriteLine($"Compressed data: {BitConverter.ToString(compressedData)}");
             var hash = ComputeHash(compressedData);
             return new ResultWithPayload<T>(compressedData, hash, ResultState.Success, string.Empty);
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
-            return new ResultWithPayload<T>([], string.Empty, ResultState.Warning,
+            Console.WriteLine($"Serialization failed: {ex.Message}");
+            return new ResultWithPayload<T>(Array.Empty<byte>(), string.Empty, ResultState.Failure,
                 "Serialization failed.");
         }
         catch (Exception ex)
         {
-            return new ResultWithPayload<T>([], string.Empty, ResultState.Failure, ex.Message);
+            Console.WriteLine($"Unexpected error: {ex.Message}");
+            return new ResultWithPayload<T>(Array.Empty<byte>(), string.Empty, ResultState.Failure, ex.Message);
         }
     }
 
-    /// <summary>
-    ///     Creates a failure result with the specified error message.
-    /// </summary>
-    /// <param name="error">The error message.</param>
-    /// <returns>A failure result with the error message.</returns>
-#pragma warning disable CA1000
     public static ResultWithPayload<T> FailureWithPayload(string error) =>
-#pragma warning restore CA1000
-        new([], string.Empty, ResultState.Failure, error);
+        new(Array.Empty<byte>(), string.Empty, ResultState.Failure, error);
 
-    /// <summary>
-    ///     Creates a successful result with the specified payload data asynchronously.
-    /// </summary>
-    /// <param name="data">The payload data.</param>
-    /// <returns>A task representing the asynchronous operation. The task result is a successful result with the payload.</returns>
-#pragma warning disable CA1000
     public static async Task<ResultWithPayload<T>> SuccessWithPayloadAsync(T data)
-#pragma warning restore CA1000
     {
         try
         {
@@ -110,28 +66,20 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
         }
         catch (JsonException)
         {
-            return new ResultWithPayload<T>([], string.Empty, ResultState.PartialSuccess,
+            return new ResultWithPayload<T>(Array.Empty<byte>(), string.Empty, ResultState.PartialSuccess,
                 "Serialization partially failed.");
         }
         catch (Exception ex)
         {
-            return new ResultWithPayload<T>([], string.Empty, ResultState.Failure, ex.Message);
+            return new ResultWithPayload<T>(Array.Empty<byte>(), string.Empty, ResultState.Failure, ex.Message);
         }
     }
 
-    // In the ResultWithPayload<T> class
     public void UpdateErrorMessage(string errorMessage) => ErrorMessage = errorMessage;
 
-    /// <summary>
-    ///     Decompresses and deserializes the payload data.
-    /// </summary>
-    /// <returns>
-    ///     A result containing the decompressed and deserialized payload data if successful, or a failure result if an
-    ///     error occurred.
-    /// </returns>
     public Result<T?> DecompressAndDeserialize()
     {
-        if (State is not ResultState.Success)
+        if (State != ResultState.Success)
             return Result<T?>.Failure("Operation failed, cannot decompress.");
 
         try
@@ -140,26 +88,28 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
             using var gzip = new GZipStream(input, CompressionMode.Decompress);
             using var reader = new StreamReader(gzip);
             var decompressedJson = reader.ReadToEnd();
+            Console.WriteLine($"Decompressed JSON: {decompressedJson}");
             if (!ValidateHash(Payload, Hash))
                 throw new InvalidOperationException("Data corruption detected during decompression.");
 
-            var deserializedData = JsonSerializer.Deserialize<T>(decompressedJson) ?? default(T);
-            return Result<T?>.Success(deserializedData);
+            var deserializedData = JsonSerializer.Deserialize<T>(decompressedJson);
+            return deserializedData is not null
+                ? Result<T?>.Success(deserializedData)
+                : Result<T?>.Failure("Deserialization returned null.");
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"Decompression or deserialization failed: {ex.Message}");
             return Result<T?>.Failure(ex.Message);
         }
     }
 
-    [Pure]
     private static bool ValidateHash(byte[] data, string expectedHash)
     {
         var actualHash = ComputeHash(data);
         return actualHash == expectedHash;
     }
 
-    [Pure]
     private static string ComputeHash(byte[] data)
     {
         var hash = SHA256.HashData(data);
@@ -169,12 +119,12 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
     private static async Task<byte[]> CompressAsync(byte[] data)
     {
         using var output = new MemoryStream();
-        var zip = new GZipStream(output, CompressionMode.Compress);
-        await using (zip.ConfigureAwait(false))
+        await using (var zip = new GZipStream(output, CompressionMode.Compress))
         {
             await zip.WriteAsync(data).ConfigureAwait(false);
-            return output.ToArray();
         }
+
+        return output.ToArray();
     }
 
     private static byte[] Compress(byte[] data)
@@ -182,6 +132,7 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
         using var output = new MemoryStream();
         using var zip = new GZipStream(output, CompressionMode.Compress);
         zip.Write(data, 0, data.Length);
+        zip.Close(); // Ensure data is flushed to the MemoryStream
         return output.ToArray();
     }
 
