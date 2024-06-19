@@ -5,9 +5,12 @@ using System.Text.Json;
 
 namespace DropBear.Codex.Core;
 
+#pragma warning disable MA0048
 public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
+#pragma warning restore MA0048
 {
-    internal ResultWithPayload(byte[] payload, string hash, ResultState state, string errorMessage)
+    // ReSharper disable once MemberCanBePrivate.Global
+    internal ResultWithPayload(byte[]? payload, string? hash, ResultState state, string? errorMessage)
     {
         Payload = payload ?? Array.Empty<byte>();
         Hash = hash ?? string.Empty;
@@ -15,7 +18,9 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
         ErrorMessage = errorMessage ?? string.Empty;
     }
 
+#pragma warning disable CA1819
     public byte[] Payload { get; }
+#pragma warning restore CA1819
     public string Hash { get; }
     public ResultState State { get; }
     public string ErrorMessage { get; private set; }
@@ -28,7 +33,9 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
         return State == other.State && Hash == other.Hash && Payload.SequenceEqual(other.Payload);
     }
 
+#pragma warning disable CA1000
     public static ResultWithPayload<T> SuccessWithPayload(T data)
+#pragma warning restore CA1000
     {
         try
         {
@@ -42,20 +49,24 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
         catch (JsonException ex)
         {
             Console.WriteLine($"Serialization failed: {ex.Message}");
-            return new ResultWithPayload<T>(Array.Empty<byte>(), string.Empty, ResultState.Failure,
+            return new ResultWithPayload<T>([], string.Empty, ResultState.Failure,
                 "Serialization failed.");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Unexpected error: {ex.Message}");
-            return new ResultWithPayload<T>(Array.Empty<byte>(), string.Empty, ResultState.Failure, ex.Message);
+            return new ResultWithPayload<T>([], string.Empty, ResultState.Failure, ex.Message);
         }
     }
 
+#pragma warning disable CA1000
     public static ResultWithPayload<T> FailureWithPayload(string error) =>
+#pragma warning restore CA1000
         new(Array.Empty<byte>(), string.Empty, ResultState.Failure, error);
 
+#pragma warning disable CA1000
     public static async Task<ResultWithPayload<T>> SuccessWithPayloadAsync(T data)
+#pragma warning restore CA1000
     {
         try
         {
@@ -79,7 +90,7 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
 
     public Result<T?> DecompressAndDeserialize()
     {
-        if (State != ResultState.Success)
+        if (State is not ResultState.Success)
             return Result<T?>.Failure("Operation failed, cannot decompress.");
 
         try
@@ -119,7 +130,8 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
     private static async Task<byte[]> CompressAsync(byte[] data)
     {
         using var output = new MemoryStream();
-        await using (var zip = new GZipStream(output, CompressionMode.Compress))
+        var zip = new GZipStream(output, CompressionMode.Compress);
+        await using (zip.ConfigureAwait(false))
         {
             await zip.WriteAsync(data).ConfigureAwait(false);
         }
