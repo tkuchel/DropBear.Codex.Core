@@ -69,7 +69,7 @@ public class Result : IEquatable<Result>
 
     public Result Unwrap()
     {
-        return this ?? throw new InvalidOperationException("Cannot unwrap a result that is not a Result<Result>.");
+        return this;
     }
 
     public Result OnFailure(Action<string, Exception?> action)

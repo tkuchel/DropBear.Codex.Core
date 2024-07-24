@@ -7,7 +7,9 @@ using System.Collections.ObjectModel;
 
 namespace DropBear.Codex.Core;
 
+#pragma warning disable MA0048
 public class Result<T> : Result, IEquatable<Result<T>>, IEnumerable<T>
+#pragma warning restore MA0048
 {
     private Result(T value, string? error, Exception? exception, ResultState state)
         : base(state, error, exception)
@@ -33,43 +35,6 @@ public class Result<T> : Result, IEquatable<Result<T>>, IEnumerable<T>
     public bool Equals(Result<T>? other)
     {
         return base.Equals(other) && EqualityComparer<T>.Default.Equals(Value, other!.Value);
-    }
-
-    public static Result<T> Success(T value)
-    {
-        return new Result<T>(value, string.Empty, null, ResultState.Success);
-    }
-
-    public static new Result<T> Failure(string error, Exception? exception = null)
-    {
-        return new Result<T>(default!, error, exception, ResultState.Failure);
-    }
-
-    public static Result<T> Failure(Exception exception)
-    {
-        return new Result<T>(default!, exception.Message, exception, ResultState.Failure);
-    }
-
-    public static Result<T> Failure(IEnumerable<Exception> exceptions)
-    {
-        var exceptionList = exceptions.ToList();
-        var errorMessage = exceptionList.Count > 0 ? exceptionList[0].Message : "Multiple errors occurred.";
-        return new Result<T>(default!, errorMessage, exceptionList.FirstOrDefault(), ResultState.Failure)
-        {
-            Exceptions = new ReadOnlyCollection<Exception>(exceptionList)
-        };
-    }
-
-    public static Result<T> Try(Func<T> func)
-    {
-        try
-        {
-            return Success(func());
-        }
-        catch (Exception ex)
-        {
-            return Failure(ex);
-        }
     }
 
     public T ValueOrDefault(T defaultValue = default!)
@@ -151,9 +116,14 @@ public class Result<T> : Result, IEquatable<Result<T>>, IEnumerable<T>
         return IsSuccess ? defaultError : ErrorMessage ?? "An unknown error has occurred.";
     }
 
-    public new Result<T> Unwrap()
+    public new T Unwrap()
     {
-        return this;
+        if (Value is not null)
+        {
+            return Value;
+        }
+
+        throw new InvalidOperationException("Cannot unwrap a result that is not a Result<Result>.");
     }
 
     public Result<TOut> Map<TOut>(Func<T, TOut> mapper)
@@ -200,4 +170,44 @@ public class Result<T> : Result, IEquatable<Result<T>>, IEnumerable<T>
     {
         return Failure(exception);
     }
+
+#pragma warning disable CA1000
+    public static Result<T> Success(T value)
+
+    {
+        return new Result<T>(value, string.Empty, null, ResultState.Success);
+    }
+
+    public static new Result<T> Failure(string error, Exception? exception = null)
+    {
+        return new Result<T>(default!, error, exception, ResultState.Failure);
+    }
+
+    public static Result<T> Failure(Exception exception)
+    {
+        return new Result<T>(default!, exception.Message, exception, ResultState.Failure);
+    }
+
+    public static new Result<T> Failure(IEnumerable<Exception> exceptions)
+    {
+        var exceptionList = exceptions.ToList();
+        var errorMessage = exceptionList.Count > 0 ? exceptionList[0].Message : "Multiple errors occurred.";
+        return new Result<T>(default!, errorMessage, exceptionList.FirstOrDefault(), ResultState.Failure)
+        {
+            Exceptions = new ReadOnlyCollection<Exception>(exceptionList)
+        };
+    }
+
+    public static Result<T> Try(Func<T> func)
+    {
+        try
+        {
+            return Success(func());
+        }
+        catch (Exception ex)
+        {
+            return Failure(ex);
+        }
+    }
+#pragma warning restore CA1000
 }

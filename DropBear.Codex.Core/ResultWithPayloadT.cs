@@ -13,7 +13,9 @@ namespace DropBear.Codex.Core;
 
 #endregion
 
+#pragma warning disable MA0048
 public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
+#pragma warning restore MA0048
 {
     internal ResultWithPayload(byte[]? payload, string? hash, ResultState state, string? errorMessage)
     {
@@ -23,7 +25,9 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
         ErrorMessage = errorMessage ?? string.Empty;
     }
 
+#pragma warning disable CA1819
     public byte[] Payload { get; }
+#pragma warning restore CA1819
     public string Hash { get; }
     public ResultState State { get; }
     public string ErrorMessage { get; private set; }
@@ -38,51 +42,6 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
         }
 
         return State == other.State && Hash == other.Hash && Payload.SequenceEqual(other.Payload);
-    }
-
-    public static ResultWithPayload<T> SuccessWithPayload(T data)
-    {
-        try
-        {
-            var jsonData = JsonSerializer.Serialize(data);
-            var compressedData = Compress(Encoding.UTF8.GetBytes(jsonData));
-            var hash = ComputeHash(compressedData);
-            return new ResultWithPayload<T>(compressedData, hash, ResultState.Success, string.Empty);
-        }
-        catch (JsonException)
-        {
-            return new ResultWithPayload<T>(Array.Empty<byte>(), string.Empty, ResultState.Failure,
-                "Serialization failed.");
-        }
-        catch (Exception ex)
-        {
-            return new ResultWithPayload<T>(Array.Empty<byte>(), string.Empty, ResultState.Failure, ex.Message);
-        }
-    }
-
-    public static ResultWithPayload<T> FailureWithPayload(string error)
-    {
-        return new ResultWithPayload<T>(Array.Empty<byte>(), string.Empty, ResultState.Failure, error);
-    }
-
-    public static async Task<ResultWithPayload<T>> SuccessWithPayloadAsync(T data)
-    {
-        try
-        {
-            var jsonData = JsonSerializer.Serialize(data);
-            var compressedData = await CompressAsync(Encoding.UTF8.GetBytes(jsonData)).ConfigureAwait(false);
-            var hash = ComputeHash(compressedData);
-            return new ResultWithPayload<T>(compressedData, hash, ResultState.Success, string.Empty);
-        }
-        catch (JsonException)
-        {
-            return new ResultWithPayload<T>(Array.Empty<byte>(), string.Empty, ResultState.PartialSuccess,
-                "Serialization partially failed.");
-        }
-        catch (Exception ex)
-        {
-            return new ResultWithPayload<T>(Array.Empty<byte>(), string.Empty, ResultState.Failure, ex.Message);
-        }
     }
 
     public void UpdateErrorMessage(string errorMessage)
@@ -163,4 +122,52 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
     {
         return HashCode.Combine(State, Hash, Payload);
     }
+
+#pragma warning disable CA1000
+    public static ResultWithPayload<T> SuccessWithPayload(T data)
+
+    {
+        try
+        {
+            var jsonData = JsonSerializer.Serialize(data);
+            var compressedData = Compress(Encoding.UTF8.GetBytes(jsonData));
+            var hash = ComputeHash(compressedData);
+            return new ResultWithPayload<T>(compressedData, hash, ResultState.Success, string.Empty);
+        }
+        catch (JsonException)
+        {
+            return new ResultWithPayload<T>(Array.Empty<byte>(), string.Empty, ResultState.Failure,
+                "Serialization failed.");
+        }
+        catch (Exception ex)
+        {
+            return new ResultWithPayload<T>(Array.Empty<byte>(), string.Empty, ResultState.Failure, ex.Message);
+        }
+    }
+
+    public static ResultWithPayload<T> FailureWithPayload(string error)
+    {
+        return new ResultWithPayload<T>(Array.Empty<byte>(), string.Empty, ResultState.Failure, error);
+    }
+
+    public static async Task<ResultWithPayload<T>> SuccessWithPayloadAsync(T data)
+    {
+        try
+        {
+            var jsonData = JsonSerializer.Serialize(data);
+            var compressedData = await CompressAsync(Encoding.UTF8.GetBytes(jsonData)).ConfigureAwait(false);
+            var hash = ComputeHash(compressedData);
+            return new ResultWithPayload<T>(compressedData, hash, ResultState.Success, string.Empty);
+        }
+        catch (JsonException)
+        {
+            return new ResultWithPayload<T>(Array.Empty<byte>(), string.Empty, ResultState.PartialSuccess,
+                "Serialization partially failed.");
+        }
+        catch (Exception ex)
+        {
+            return new ResultWithPayload<T>(Array.Empty<byte>(), string.Empty, ResultState.Failure, ex.Message);
+        }
+    }
+#pragma warning restore CA1000
 }

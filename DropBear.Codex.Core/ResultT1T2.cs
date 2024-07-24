@@ -4,7 +4,9 @@ namespace DropBear.Codex.Core;
 
 #endregion
 
+#pragma warning disable MA0048
 public class Result<TSuccess, TFailure> : IEquatable<Result<TSuccess, TFailure>>
+#pragma warning restore MA0048
 {
     private readonly TFailure _failure;
     private readonly TSuccess _success;
@@ -33,7 +35,9 @@ public class Result<TSuccess, TFailure> : IEquatable<Result<TSuccess, TFailure>>
                EqualityComparer<TFailure>.Default.Equals(_failure, other._failure);
     }
 
+#pragma warning disable CA1000
     public static Result<TSuccess, TFailure> Succeeded(TSuccess value)
+
     {
         return new Result<TSuccess, TFailure>(value, default!, ResultState.Success);
     }
@@ -42,7 +46,7 @@ public class Result<TSuccess, TFailure> : IEquatable<Result<TSuccess, TFailure>>
     {
         return new Result<TSuccess, TFailure>(default!, error, ResultState.Failure);
     }
-
+#pragma warning restore CA1000
     public TResult Match<TResult>(
         Func<TSuccess, TResult> onSuccess,
         Func<TFailure, TResult> onFailure)
