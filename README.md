@@ -1,112 +1,161 @@
-# Result Class Library
+# DropBear.Codex.Core Result Types
 
-This library provides a set of tools for managing operation results in a robust and railway-oriented programming fashion. It offers various result types to encapsulate the outcomes of operations, handling both successes and failures gracefully without throwing exceptions. This approach enhances error handling, makes your codebase cleaner, and improves the maintainability of your applications.
+## Overview
 
-## Features
+The DropBear.Codex.Core library provides a set of Result types that offer a robust and type-safe way to handle operation outcomes in your C# applications. These types help eliminate null checks, reduce exceptions, and make error handling more explicit and easier to manage.
 
-- **Generic Result Types**: Handle different data types and operations flexibly.
-- **Railway-Oriented Programming**: Built-in methods for chaining operations based on success or failure outcomes.
-- **Error Handling**: Advanced error handling capabilities without relying on exceptions.
-- **Asynchronous Support**: Asynchronous methods to handle I/O-bound and CPU-intensive operations efficiently.
+## Available Result Types
 
-## Installation
+1. `Result`
+2. `Result<T>`
+3. `Result<TSuccess, TFailure>`
+4. `ResultWithPayload<T>`
 
-To install the Result Class Library, use the following NuGet command:
+## Basic Usage
 
-```bash
-dotnet add package DropBear.Codex.Core
-```
+### Result
 
-## Usage Examples
-
-Below are some examples of how to use the various result types provided by the library:
-
-### Using `Result`
+`Result` is the most basic type, representing success or failure without any associated value.
 
 ```csharp
-var result = Result.Success();
+public Result DoSomething()
+{
+    if (everythingWentWell)
+        return Result.Success();
+    else
+        return Result.Failure("Something went wrong");
+}
+
+var result = DoSomething();
 if (result.IsSuccess)
+    Console.WriteLine("Operation succeeded");
+else
+    Console.WriteLine($"Operation failed: {result.ErrorMessage}");
+```
+
+### Result<T>
+
+`Result<T>` represents an operation that, when successful, returns a value of type T.
+
+```csharp
+public Result<int> CalculateValue()
 {
-    Console.WriteLine("Operation succeeded.");
+    if (canCalculate)
+        return Result<int>.Success(42);
+    else
+        return Result<int>.Failure("Unable to calculate value");
 }
 
-var failureResult = Result.Failure("Error occurred.");
-failureResult.OnFailure(error => Console.WriteLine(error));
-```
-
-### Using `Result<T>`
-
-```csharp
-var result = Result.Success(123);
-var nextResult = result.Bind(value => Result.Success(value.ToString()));
-nextResult.OnSuccess(value => Console.WriteLine($"Processed value: {value}"));
-```
-
-### Using `Result<TSuccess, TFailure>`
-
-```csharp
-var result = Result.Success<int, string>(42);
+var result = CalculateValue();
 result.Match(
-    success => Console.WriteLine($"Success with value: {success}"),
-    failure => Console.WriteLine($"Failed with error: {failure}")
+    onSuccess: value => Console.WriteLine($"Calculated value: {value}"),
+    onFailure: (error, _) => Console.WriteLine($"Calculation failed: {error}")
 );
 ```
 
-### Using `Result<TSuccess, TFailure>` with Additional Handlers
-```csharp
-var result = Result.Success<int, string>(42);
-result.Match(
-    success => Console.WriteLine($"Success with value: {success}"),
-    failure => Console.WriteLine($"Failed with error: {failure}"),
-    onPending: () => Console.WriteLine("Operation is pending."),
-    onCancelled: () => Console.WriteLine("Operation was cancelled."),
-    onWarning: () => Console.WriteLine("Operation completed with warnings."),
-    onPartialSuccess: () => Console.WriteLine("Operation partially succeeded."),
-    onNoOp: () => Console.WriteLine("No operation was performed.")
-);
+### Result<TSuccess, TFailure>
 
+`Result<TSuccess, TFailure>` allows you to specify both success and failure types.
+
+```csharp
+public Result<int, string> Divide(int a, int b)
+{
+    if (b == 0)
+        return Result<int, string>.Failed("Cannot divide by zero");
+    return Result<int, string>.Succeeded(a / b);
+}
+
+var result = Divide(10, 2);
+var output = result.Match(
+    onSuccess: value => $"Result: {value}",
+    onFailure: error => $"Error: {error}"
+);
+Console.WriteLine(output);
 ```
 
-### Using `ResultWithPayload<T>`
+### ResultWithPayload<T>
+
+`ResultWithPayload<T>` is useful when you need to include additional metadata or when working with serialized data.
 
 ```csharp
-var data = new { Name = "Example", Value = 42 };
-var result = Result.SuccessWithPayload(data);
-var deserialized = result.DecompressAndDeserialize();
-if (deserialized.IsSuccess)
+public ResultWithPayload<UserData> GetUserData(int userId)
 {
-    Console.WriteLine($"Data: {deserialized.Value.Name}");
+    var userData = // ... fetch user data
+    if (userData != null)
+        return ResultWithPayload<UserData>.SuccessWithPayload(userData);
+    else
+        return ResultWithPayload<UserData>.FailureWithPayload("User not found");
+}
+
+var result = GetUserData(123);
+if (result.IsValid)
+{
+    var userData = result.DecompressAndDeserialize().ValueOrThrow();
+    Console.WriteLine($"User name: {userData.Name}");
+}
+else
+{
+    Console.WriteLine($"Error: {result.ErrorMessage}");
 }
 ```
 
-## Contributing
+## Advanced Features
 
-Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+### Chaining Operations
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+You can chain multiple operations using the `Bind` method:
 
-## License
+```csharp
+Result<int> GetNumber() => Result<int>.Success(10);
+Result<int> Double(int n) => Result<int>.Success(n * 2);
+Result<string> ToString(int n) => Result<string>.Success(n.ToString());
 
-Distributed under the GNU LGPL v3. See [LICENSE](https://www.gnu.org/licenses/lgpl-3.0.en.html) for more information.
+var result = GetNumber()
+    .Bind(Double)
+    .Bind(ToString);
 
-## Contact
+// result will be Success("20") if all operations succeed
+```
 
-Terrence Kuchel (DropBear) - Contact me via GitHub.
-Project Link: [GitHub](https://github.com/tkuchel/DropBear.Codex.Core)
+### Transforming Results
 
-## Acknowledgements
+Use the `Map` method to transform the success value:
 
-- Thanks to all contributors who participate in this project.
-- Special thanks to those who contribute to railway-oriented programming ideas and patterns.
+```csharp
+var result = GetNumber().Map(n => n.ToString());
+// If GetNumber returns Success(10), result will be Success("10")
+```
 
-## Development Status
+### Error Handling
 
-**Note:** This library is relatively new and under active development. While it is being developed with robustness and best practices in mind, it may still be evolving.
+You can handle errors using the `OnFailure` method:
 
-We encourage you to test thoroughly and contribute if possible before using this library in a production environment. The API and features may change as feedback is received and improvements are made. We appreciate your understanding and contributions to making this library better!
+```csharp
+GetNumber()
+    .OnFailure((error, ex) => Console.WriteLine($"An error occurred: {error}"))
+    .OnSuccess(n => Console.WriteLine($"The number is: {n}"));
+```
 
-Please use the following link to report any issues or to contribute: [GitHub Issues](https://github.com/tkuchel/DropBear.Codex.Core/issues).
+### Try-Catch Wrapper
+
+The `Try` method provides a convenient way to wrap operations that might throw exceptions:
+
+```csharp
+var result = Result<int>.Try(() =>
+{
+    // Some operation that might throw
+    return int.Parse("not a number");
+});
+
+// result will be a Failure containing the exception message
+```
+
+## Best Practices
+
+1. Prefer using Result types over throwing exceptions for expected failure cases.
+2. Use the `Match` method to handle both success and failure cases explicitly.
+3. Chain operations using `Bind` and `Map` to create clean and readable code.
+4. Use `ResultWithPayload<T>` when you need to include additional metadata or work with serialized data.
+5. Leverage the `Try` method to convert exception-throwing code into Result-returning code.
+
+By consistently using these Result types, you can make your code more predictable, easier to reason about, and less prone to runtime errors.

@@ -1,15 +1,20 @@
-﻿using System.IO.Compression;
+﻿#region
+
+#region
+
+using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
+#endregion
+
 namespace DropBear.Codex.Core;
 
-#pragma warning disable MA0048
+#endregion
+
 public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
-#pragma warning restore MA0048
 {
-    // ReSharper disable once MemberCanBePrivate.Global
     internal ResultWithPayload(byte[]? payload, string? hash, ResultState state, string? errorMessage)
     {
         Payload = payload ?? Array.Empty<byte>();
@@ -18,9 +23,7 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
         ErrorMessage = errorMessage ?? string.Empty;
     }
 
-#pragma warning disable CA1819
     public byte[] Payload { get; }
-#pragma warning restore CA1819
     public string Hash { get; }
     public ResultState State { get; }
     public string ErrorMessage { get; private set; }
@@ -29,44 +32,40 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
 
     public bool Equals(ResultWithPayload<T>? other)
     {
-        if (other is null) return false;
+        if (other is null)
+        {
+            return false;
+        }
+
         return State == other.State && Hash == other.Hash && Payload.SequenceEqual(other.Payload);
     }
 
-#pragma warning disable CA1000
     public static ResultWithPayload<T> SuccessWithPayload(T data)
-#pragma warning restore CA1000
     {
         try
         {
             var jsonData = JsonSerializer.Serialize(data);
-            Console.WriteLine($"Serialized JSON: {jsonData}");
             var compressedData = Compress(Encoding.UTF8.GetBytes(jsonData));
-            Console.WriteLine($"Compressed data: {BitConverter.ToString(compressedData)}");
             var hash = ComputeHash(compressedData);
             return new ResultWithPayload<T>(compressedData, hash, ResultState.Success, string.Empty);
         }
-        catch (JsonException ex)
+        catch (JsonException)
         {
-            Console.WriteLine($"Serialization failed: {ex.Message}");
-            return new ResultWithPayload<T>([], string.Empty, ResultState.Failure,
+            return new ResultWithPayload<T>(Array.Empty<byte>(), string.Empty, ResultState.Failure,
                 "Serialization failed.");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Unexpected error: {ex.Message}");
-            return new ResultWithPayload<T>([], string.Empty, ResultState.Failure, ex.Message);
+            return new ResultWithPayload<T>(Array.Empty<byte>(), string.Empty, ResultState.Failure, ex.Message);
         }
     }
 
-#pragma warning disable CA1000
-    public static ResultWithPayload<T> FailureWithPayload(string error) =>
-#pragma warning restore CA1000
-        new(Array.Empty<byte>(), string.Empty, ResultState.Failure, error);
+    public static ResultWithPayload<T> FailureWithPayload(string error)
+    {
+        return new ResultWithPayload<T>(Array.Empty<byte>(), string.Empty, ResultState.Failure, error);
+    }
 
-#pragma warning disable CA1000
     public static async Task<ResultWithPayload<T>> SuccessWithPayloadAsync(T data)
-#pragma warning restore CA1000
     {
         try
         {
@@ -86,12 +85,17 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
         }
     }
 
-    public void UpdateErrorMessage(string errorMessage) => ErrorMessage = errorMessage;
+    public void UpdateErrorMessage(string errorMessage)
+    {
+        ErrorMessage = errorMessage;
+    }
 
     public Result<T?> DecompressAndDeserialize()
     {
         if (State is not ResultState.Success)
+        {
             return Result<T?>.Failure("Operation failed, cannot decompress.");
+        }
 
         try
         {
@@ -99,9 +103,11 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
             using var gzip = new GZipStream(input, CompressionMode.Decompress);
             using var reader = new StreamReader(gzip);
             var decompressedJson = reader.ReadToEnd();
-            Console.WriteLine($"Decompressed JSON: {decompressedJson}");
+
             if (!ValidateHash(Payload, Hash))
+            {
                 throw new InvalidOperationException("Data corruption detected during decompression.");
+            }
 
             var deserializedData = JsonSerializer.Deserialize<T>(decompressedJson);
             return deserializedData is not null
@@ -110,7 +116,6 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Decompression or deserialization failed: {ex.Message}");
             return Result<T?>.Failure(ex.Message);
         }
     }
@@ -130,8 +135,7 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
     private static async Task<byte[]> CompressAsync(byte[] data)
     {
         using var output = new MemoryStream();
-        var zip = new GZipStream(output, CompressionMode.Compress);
-        await using (zip.ConfigureAwait(false))
+        using (var zip = new GZipStream(output, CompressionMode.Compress))
         {
             await zip.WriteAsync(data).ConfigureAwait(false);
         }
@@ -142,12 +146,21 @@ public class ResultWithPayload<T> : IEquatable<ResultWithPayload<T>>
     private static byte[] Compress(byte[] data)
     {
         using var output = new MemoryStream();
-        using var zip = new GZipStream(output, CompressionMode.Compress);
-        zip.Write(data, 0, data.Length);
-        zip.Close(); // Ensure data is flushed to the MemoryStream
+        using (var zip = new GZipStream(output, CompressionMode.Compress))
+        {
+            zip.Write(data, 0, data.Length);
+        }
+
         return output.ToArray();
     }
 
-    public override bool Equals(object? obj) => Equals(obj as ResultWithPayload<T>);
-    public override int GetHashCode() => HashCode.Combine(State, Hash, Payload);
+    public override bool Equals(object? obj)
+    {
+        return Equals(obj as ResultWithPayload<T>);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(State, Hash, Payload);
+    }
 }
